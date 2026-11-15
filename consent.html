@@ -104,7 +104,7 @@ document.getElementById('back-link').href = `intro.html?lang=${lang}`;
 
 (async function(){
   try {
-    _S = await fetch(`/i18n/${lang}.json`).then(r=>r.json());
+    _S = await fetch(`i18n/${lang}.json`).then(r=>r.json());
     document.querySelectorAll('[data-i18n]').forEach(el=>{
       const k=el.dataset.i18n; if(_S[k]!==undefined) el.textContent=_S[k];
     });
@@ -123,12 +123,12 @@ function updateBtn(){
   document.getElementById('start-btn').classList.toggle('inactive', !all);
 }
 
-const TCLE_VERSION = '1.0';   /* keep in sync with consent_date in the i18n files */
+const TCLE_VERSION = 'online-1.0';   /* keep in sync with consent_date in the i18n files; sent with every submission (max 20 chars) */
 
 function startSurvey(){
   const all = ['chk1','chk2','chk3'].every(id=>document.getElementById(id).checked);
   if(!all) return;
-  /* No server call here: nothing is stored on the server until the user finishes. */
+  /* Nothing is sent anywhere here: answers are sent once, at the very end of the test. */
   sessionStorage.setItem('drake_consent', JSON.stringify({ lang, tcle_version: TCLE_VERSION }));
   sessionStorage.removeItem('drake_session');
   sessionStorage.removeItem('drake_pending_id');

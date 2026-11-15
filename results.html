@@ -506,6 +506,16 @@
 
 			<p class="mc-note" data-i18n="results_mc_note">Distribuição calculada por Monte Carlo (20 000 amostras) ·
 				curva suavizada por KDE</p>
+			<p class="mc-note" id="comm-info"></p>
+			<p class="mc-note" id="status-note"></p>
+		</div>
+
+		<!-- empty state: this browser has no result (and the link carries none) -->
+		<div class="result-card" id="empty-card" style="display:none">
+			<p class="community-note" data-i18n="results_none">Não há resultados neste navegador. Faça o teste para ver a sua distribuição.</p>
+			<p style="text-align:center;margin-top:.9rem">
+				<a class="action-btn primary" id="start-link" href="consent.html" style="display:inline-flex;max-width:260px"><span data-i18n="results_start">Fazer o teste</span></a>
+			</p>
 		</div>
 
 		<!-- community note: shown when community curve absent -->
@@ -538,13 +548,20 @@
 		</div>
 		<p class="footer-note" data-i18n="results_footer">Obrigado pela participação.</p>
 		<p class="footer-note" style="margin-top:.5rem">
-			<a href="https://github.com/ferdesmello/drakelicit" target="_blank" rel="noopener" id="source-link"
+			<a href="#" target="_blank" rel="noopener" id="source-link"
 				style="color:#888780;text-underline-offset:3px">
 				↗ <span data-i18n="results_source">Código-fonte e mais informações</span>
+			</a>
+			&nbsp;·&nbsp;
+			<a href="#" target="_blank" rel="noopener" id="data-link"
+				style="color:#888780;text-underline-offset:3px">
+				↗ <span data-i18n="results_data">Dados abertos (CC BY 4.0)</span>
 			</a>
 		</p>
 	</div>
 
+	<script src="config.js"></script>
+	<script src="js/drake.js"></script>
 	<script>
 		/* ── tick helpers ── */
 		function superscript(n) {
@@ -783,7 +800,7 @@
 				skipped: !!tr.querySelector('.skipped-tag'),
 				value: tr.cells[2].textContent.replace(/\s+/g, ' ').trim()
 			}));
-			return { yourDist, commDist, stats, legend, probs, params, url: location.host,
+			return { yourDist, commDist, stats, legend, probs, params, url: (location.host + location.pathname.replace(/[^/]*$/, '')).replace(/\/$/, ''),
 				eyebrow: T('results_eyebrow'), title: T('results_title'), yourN: T('results_your_n'),
 				mcNote: T('results_mc_note'), summary: T('results_summary'),
 				thParam: T('results_th_param'), thMode: T('results_th_mode') };
@@ -936,7 +953,7 @@
 				const file = new File([blob], EXPORT_FILENAME, { type: 'image/png' });
 				if (nativeShare) {
 					try {
-						await navigator.share({ files: [file], title: document.title, text: location.origin + '/' });
+						await navigator.share({ files: [file], title: document.title, text: location.origin + location.pathname.replace(/[^/]*$/, '') });
 						return;
 					} catch (err) {
 						if (err && err.name === 'AbortError') return;   /* user closed the share sheet */
@@ -952,30 +969,28 @@
 
 		/* ── main async block ── */
 		(async function () {
+			const cfg = window.DRAKE_CONFIG || {};
 			const supported = ['pt', 'en', 'es'];
 			const qp = new URLSearchParams(location.search);
 			const ul = qp.get('lang'), bl = (navigator.language || 'pt').slice(0, 2);
 			const lang = supported.includes(ul) ? ul : supported.includes(bl) ? bl : 'pt';
 			document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
 
+			document.getElementById('start-link').href = `consent.html?lang=${lang}`;
 			document.getElementById('redo-btn').onclick = function (e) {
 				e.preventDefault();
+				/* drafts only; the "already took the test on this device" marker (drakeo_*) stays */
 				Object.keys(localStorage).filter(k => k.startsWith('drake-')).forEach(k => localStorage.removeItem(k));
-				sessionStorage.removeItem('drake_session');
+				sessionStorage.removeItem('drake_pending_id');
 				location.href = `consent.html?lang=${lang}`;
 			};
 
-			const session_id = qp.get('session') || sessionStorage.getItem('drake_session');
-			const fetches = [
-				fetch(`/i18n/${lang}.json`).then(r => r.json()).catch(() => ({})),
-				fetch('/questions.json').then(r => r.json()).catch(() => []),
-				session_id
-					? fetch(`/api/results/${session_id}/computed`).then(r => r.ok ? r.json() : null).catch(() => null)
-					: Promise.resolve(null),
-				fetch('/api/aggregate/computed').then(r => r.ok ? r.json() : null).catch(() => null),
-			];
-			let S = {}, questions = [], individualN = null, communityData = null;
-			[S, questions, individualN, communityData] = await Promise.all(fetches);
+			const [S, questions, communityData] = await Promise.all([
+				fetch(`i18n/${lang}.json`).then(r => r.json()).catch(() => ({})),
+				fetch('questions.json').then(r => r.json()).catch(() => []),
+				fetch(cfg.COMMUNITY_URL || 'data/community.json', { cache: 'no-cache' })
+					.then(r => r.ok ? r.json() : null).catch(() => null),
+			]);
 			window._S = S;
 
 			/* touch device with native file sharing -> "Share"; otherwise -> "Download" */
@@ -989,11 +1004,34 @@
 			document.querySelectorAll('[data-i18n]').forEach(el => {
 				const k = el.dataset.i18n; if (S[k] !== undefined) el.textContent = S[k];
 			});
-			document.body.classList.add('ready');
 
-			/* ── individual N ── */
-			const yourDist = individualN?.N_distribution;
-			const Z90 = 1.2816, SIG_MIN = 0.02;
+			/* links */
+			if (cfg.REPO_URL) {
+				document.getElementById('source-link').href = cfg.REPO_URL;
+				document.getElementById('data-link').href = cfg.REPO_URL.replace(/\/$/, '') + '/tree/main/data';
+			}
+
+			/* ── this person's answers: results link (#r=...) first, else the last result kept in this browser ── */
+			const hp = new URLSearchParams(location.hash.slice(1));
+			let myAnswers = hp.get('r') ? Drake.decodeResult(hp.get('r'), questions) : null;
+			let unsent = hp.get('u') === '1';
+			if (!myAnswers) {
+				const last = Drake.loadLast();
+				if (last && last.payload) {
+					myAnswers = Drake.answersById(last.payload.answers);
+					unsent = last.sent === false;
+				}
+			}
+
+			if (!myAnswers) {                       /* nothing to show on this device */
+				document.querySelectorAll('#wrap > .result-card, #wrap > .action-row').forEach(el => el.style.display = 'none');
+				document.getElementById('empty-card').style.display = '';
+				document.body.classList.add('ready');
+				return;
+			}
+
+			/* ── individual N (computed here, in the browser) ── */
+			const yourDist = Drake.individualN(myAnswers, questions);
 			const REF_MW = 0, REF_UNIV = Math.log10(5e-13);
 
 			if (yourDist && !yourDist.error) {
@@ -1003,46 +1041,46 @@
 				document.getElementById('stat-90').textContent =
 					`[${fmtV(yourDist.N_q05)}, ${fmtV(yourDist.N_q95)}]`;
 
-				const pNotAloneMW = probAbove(yourDist, REF_MW);
-				const pAloneMW = probBelow(yourDist, REF_MW);
-				const pAloneUniv = probBelow(yourDist, REF_UNIV);
-
-				document.getElementById('prob-not-alone-mw').textContent = fmtPct(pNotAloneMW);
-				document.getElementById('prob-alone-mw').textContent = fmtPct(pAloneMW);
-				document.getElementById('prob-alone-univ').textContent = fmtPct(pAloneUniv);
+				document.getElementById('prob-not-alone-mw').textContent = fmtPct(probAbove(yourDist, REF_MW));
+				document.getElementById('prob-alone-mw').textContent = fmtPct(probBelow(yourDist, REF_MW));
+				document.getElementById('prob-alone-univ').textContent = fmtPct(probBelow(yourDist, REF_UNIV));
 			} else {
-				const reason = yourDist?.error || (S.results_n_na_reason || 'Uma ou mais perguntas foram puladas');
 				document.getElementById('stat-median').textContent = S.results_n_na || 'N/A';
-				document.getElementById('stat-iqr').textContent = reason;
+				document.getElementById('stat-iqr').textContent = S.results_n_na_reason || 'One or more questions were skipped';
 			}
 
-			/* ── community ── */
-			const MIN_SESSIONS = 3;
+			/* ── community: precomputed by the monthly Action (data/community.json) ── */
+			const MIN_SESSIONS = cfg.MIN_COMMUNITY || 3;
 			let commDist = null;
 			if (communityData?.community_N && !communityData.community_N.error
 				&& communityData.n_sessions >= MIN_SESSIONS) {
 				commDist = communityData.community_N;
 				document.getElementById('comm-legend-item').style.display = '';
 				document.getElementById('comm-note-card').style.display = 'none';
+				document.getElementById('comm-info').textContent = (S.results_comm_info || '{n} · {date}')
+					.replace('{n}', communityData.n_sessions)
+					.replace('{date}', String(communityData.generated_at || '').slice(0, 10));
 			}
 
+			/* status line: not yet in the community curve / not sent at all */
+			const note = document.getElementById('status-note');
+			if (unsent) { note.textContent = S.results_unsent || ''; note.style.color = '#ba7517'; }
+			else { note.textContent = S.results_pending || ''; }
+
 			/* ── chart ── */
-			if ((yourDist && !yourDist.error) || commDist) {
-				drawChart(yourDist && !yourDist.error ? yourDist : null, commDist);
-				window.addEventListener('resize', () =>
-					drawChart(yourDist && !yourDist.error ? yourDist : null, commDist)
-				);
+			const mineOk = yourDist && !yourDist.error;
+			if (mineOk || commDist) {
+				drawChart(mineOk ? yourDist : null, commDist);
+				window.addEventListener('resize', () => drawChart(mineOk ? yourDist : null, commDist));
 			}
 
 			/* ── param table ── */
 			const tbody = document.getElementById('param-tbody');
 			const skippedLabel = S.results_skipped || 'pulado';
-			const serverAnswers = {};
-			if (individualN?.answers) individualN.answers.forEach(a => { serverAnswers[a.question_id] = a; });
+			const Z90 = 1.2816, SIG_MIN = 0.02;
 			function getAnswer(qid) {
-				if (serverAnswers[qid]) { const a = serverAnswers[qid]; return { tLo: a.t_lo, tMode: a.t_mode, tHi: a.t_hi, skipped: a.skipped, axisMode: a.axis_mode }; }
-				const raw = localStorage.getItem(`drake-answer-${qid}`);
-				return raw ? JSON.parse(raw) : null;
+				const a = myAnswers[qid];
+				return a ? { tLo: a.t_lo, tMode: a.t_mode, tHi: a.t_hi, skipped: !!a.skipped } : null;
 			}
 			questions.forEach(Q => {
 				const row = document.createElement('tr');
@@ -1056,15 +1094,15 @@
 					const isLog = Q.axisMode !== 'lin';
 					const modeVal = isLog ? Math.pow(10, d.tMode) : d.tMode;
 
-					// 1. Calculate raw percentile positions
+					// 1. raw percentile positions of the split-normal
 					let rawQ25T = d.tMode - 0.6745 * Math.max(SIG_MIN, (d.tMode - d.tLo) / Z90);
 					let rawQ75T = d.tMode + 0.6745 * Math.max(SIG_MIN, (d.tHi - d.tMode) / Z90);
 
-					// 2. Clamp the percentile positions to the question's explicit limits [Q.tMin, Q.tMax]
+					// 2. clamp to the question's explicit limits [Q.tMin, Q.tMax]
 					const q25T = Math.max(Q.tMin, Math.min(Q.tMax, rawQ25T));
 					const q75T = Math.max(Q.tMin, Math.min(Q.tMax, rawQ75T));
 
-					// 3. Convert back to linear/log scale for the table display
+					// 3. back to linear/log scale for display
 					const q25Val = isLog ? Math.pow(10, q25T) : q25T;
 					const q75Val = isLog ? Math.pow(10, q75T) : q75T;
 
@@ -1075,8 +1113,10 @@
 				tbody.appendChild(row);
 			});
 
+			document.body.classList.add('ready');
+
 			/* image export: only makes sense when there is a N distribution of your own */
-			if (yourDist && !yourDist.error) setupExport(yourDist, commDist, nativeShare);
+			if (mineOk) setupExport(yourDist, commDist, nativeShare);
 			else document.getElementById('share-btn').style.display = 'none';
 		})();
 	</script>

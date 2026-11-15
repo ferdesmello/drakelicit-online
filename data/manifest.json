@@ -1,0 +1,16 @@
+{
+ "schema": 1,
+ "license": "CC-BY-4.0",
+ "part_size": 1000,
+ "n_rows": 0,
+ "questions": [
+  "Ns",
+  "fp",
+  "ne",
+  "fl",
+  "fi",
+  "fc",
+  "fL"
+ ],
+ "parts": []
+}

@@ -25,7 +25,6 @@ h1{font-size:24px;font-weight:600;line-height:1.25;margin-bottom:.6rem}
 .section-note{font-size:12.5px;line-height:1.6;color:#888780;margin-bottom:1rem}
 
 .field{margin-bottom:1rem}
-.field:last-child{margin-bottom:0}
 .field label{display:block;font-size:13px;color:#5f5e5a;margin-bottom:.4rem}
 .field select{
   width:100%;padding:10px 12px;font-size:15px;font-family:inherit;
@@ -83,23 +82,27 @@ h1{font-size:24px;font-weight:600;line-height:1.25;margin-bottom:.6rem}
 <div id="wrap">
   <a class="back-link" id="back-link" href="consent.html">← <span data-i18n="context_back">Voltar</span></a>
   <h1 data-i18n="context_title">Sobre você e suas crenças</h1>
-  <p class="subtitle" data-i18n="context_subtitle">Esta seção é opcional e totalmente anônima. Suas respostas aqui não afetam o cálculo da sua distribuição de N — servem apenas para caracterizar a amostra de participantes e para fins de pesquisa complementar. Pode deixar em branco qualquer item que preferir não responder.</p>
+  <p class="subtitle" data-i18n="context_subtitle">Esta seção é opcional. Suas respostas aqui não afetam o cálculo da sua distribuição de N, mas serão publicadas junto com as demais como dados abertos. Deixe em branco qualquer item que preferir não responder.</p>
 
   <div class="section-card">
-    <h2 data-i18n="context_area_section_title">Sua área de formação</h2>
-    <p class="section-note" data-i18n="context_official_classification_note">Usamos a classificação oficial de grandes áreas e áreas do CNPq; os termos aparecem em português por ser a nomenclatura oficial no Brasil. Nas apresentações, os resultados serão agregados apenas por grande área.</p>
+    <h2 data-i18n="context_area_section_title">Sobre você</h2>
+    <p class="section-note" data-i18n="context_official_classification_note">Para a área usamos a classificação de grandes áreas do CNPq. Se não encontrar a sua, escolha a mais próxima.</p>
+
     <div class="field">
-      <label data-i18n="context_area_grande_label">Grande área (classificação CNPq)</label>
+      <label for="sel-country" data-i18n="context_country_label">País (opcional)</label>
+      <select id="sel-country">
+        <option value="" data-i18n="context_area_placeholder">Selecione…</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="sel-grande" data-i18n="context_area_grande_label">Grande área (classificação CNPq)</label>
       <select id="sel-grande">
         <option value="" data-i18n="context_area_placeholder">Selecione…</option>
       </select>
     </div>
-    <div class="field" id="field-especifica" style="display:none">
-      <label data-i18n="context_area_especifica_label">Área específica (opcional)</label>
-      <select id="sel-especifica">
-        <option value="" data-i18n="context_area_placeholder">Selecione…</option>
-      </select>
-    </div>
+
+    <div id="about-container"></div>
   </div>
 
   <div class="section-card">
@@ -117,296 +120,106 @@ h1{font-size:24px;font-weight:600;line-height:1.25;margin-bottom:.6rem}
 
 <script>
 /*
- * CNPq "Tabela de Áreas do Conhecimento" — grande área → área (2nd level only,
- * not subárea/especialidade). Source: CNPq official table, cross-checked
- * against FAPESP's mirror. The Portuguese names are the canonical values
- * stored in the database; see CNPQ_LABELS below for the displayed translations.
- *
- * "Outra / Multidisciplinar" is not in CNPq's original 8-área table but is
- * commonly added as a 9th catch-all (FAPESP's own selector lists it as
- * "Interdisciplinar") — useful here since astrobiology itself is
- * multidisciplinary.
+ * Everything here is optional and is published as open data (see consent.html).
+ * Only the BROAD CNPq field is asked: the specific area was dropped on purpose,
+ * because country + specific area + answers could single a person out.
+ * Values stay in Portuguese (canonical); the labels shown come from i18n (cnpq_N).
  */
-const CNPQ_AREAS = {
-  "Ciências Exatas e da Terra": ["Matemática","Probabilidade e Estatística","Ciência da Computação","Astronomia","Física","Química","Geociências","Oceanografia"],
-  "Ciências Biológicas": ["Biologia Geral","Genética","Botânica","Zoologia","Ecologia","Morfologia","Fisiologia","Bioquímica","Biofísica","Farmacologia","Imunologia","Microbiologia","Parasitologia"],
-  "Engenharias": ["Engenharia Civil","Engenharia de Minas","Engenharia de Materiais e Metalúrgica","Engenharia Elétrica","Engenharia Mecânica","Engenharia Química","Engenharia Sanitária","Engenharia de Produção","Engenharia Nuclear","Engenharia de Transportes","Engenharia Naval e Oceânica","Engenharia Aeroespacial","Engenharia Biomédica"],
-  "Ciências da Saúde": ["Medicina","Odontologia","Farmácia","Enfermagem","Nutrição","Saúde Coletiva","Fonoaudiologia","Fisioterapia e Terapia Ocupacional","Educação Física"],
-  "Ciências Agrárias": ["Agronomia","Recursos Florestais e Engenharia Florestal","Engenharia Agrícola","Zootecnia","Medicina Veterinária","Recursos Pesqueiros e Engenharia de Pesca","Ciência e Tecnologia de Alimentos"],
-  "Ciências Sociais Aplicadas": ["Direito","Administração","Economia","Arquitetura e Urbanismo","Planejamento Urbano e Regional","Demografia","Ciência da Informação","Museologia","Comunicação","Serviço Social","Economia Doméstica","Desenho Industrial","Turismo"],
-  "Ciências Humanas": ["Filosofia","Sociologia","Antropologia","Arqueologia","História","Geografia","Psicologia","Educação","Ciência Política","Teologia"],
-  "Linguística, Letras e Artes": ["Linguística","Letras","Artes"],
-  "Outra / Multidisciplinar": []
-};
-
-/*
- * Display labels (direct translations, NOT official CNPq nomenclature).
- * Keys are the canonical Portuguese names stored in the database; Portuguese
- * needs no entry (falls back to the key itself).
- */
-const CNPQ_LABELS = {
-  en: {
-    "Ciências Exatas e da Terra": "Exact and Earth Sciences",
-    "Ciências Biológicas": "Biological Sciences",
-    "Engenharias": "Engineering",
-    "Ciências da Saúde": "Health Sciences",
-    "Ciências Agrárias": "Agricultural Sciences",
-    "Ciências Sociais Aplicadas": "Applied Social Sciences",
-    "Ciências Humanas": "Humanities",
-    "Linguística, Letras e Artes": "Linguistics, Literature and Arts",
-    "Outra / Multidisciplinar": "Other / Multidisciplinary",
-
-    "Matemática": "Mathematics",
-    "Probabilidade e Estatística": "Probability and Statistics",
-    "Ciência da Computação": "Computer Science",
-    "Astronomia": "Astronomy",
-    "Física": "Physics",
-    "Química": "Chemistry",
-    "Geociências": "Geosciences",
-    "Oceanografia": "Oceanography",
-
-    "Biologia Geral": "General Biology",
-    "Genética": "Genetics",
-    "Botânica": "Botany",
-    "Zoologia": "Zoology",
-    "Ecologia": "Ecology",
-    "Morfologia": "Morphology",
-    "Fisiologia": "Physiology",
-    "Bioquímica": "Biochemistry",
-    "Biofísica": "Biophysics",
-    "Farmacologia": "Pharmacology",
-    "Imunologia": "Immunology",
-    "Microbiologia": "Microbiology",
-    "Parasitologia": "Parasitology",
-
-    "Engenharia Civil": "Civil Engineering",
-    "Engenharia de Minas": "Mining Engineering",
-    "Engenharia de Materiais e Metalúrgica": "Materials and Metallurgical Engineering",
-    "Engenharia Elétrica": "Electrical Engineering",
-    "Engenharia Mecânica": "Mechanical Engineering",
-    "Engenharia Química": "Chemical Engineering",
-    "Engenharia Sanitária": "Sanitary Engineering",
-    "Engenharia de Produção": "Industrial Engineering",
-    "Engenharia Nuclear": "Nuclear Engineering",
-    "Engenharia de Transportes": "Transportation Engineering",
-    "Engenharia Naval e Oceânica": "Naval and Ocean Engineering",
-    "Engenharia Aeroespacial": "Aerospace Engineering",
-    "Engenharia Biomédica": "Biomedical Engineering",
-
-    "Medicina": "Medicine",
-    "Odontologia": "Dentistry",
-    "Farmácia": "Pharmacy",
-    "Enfermagem": "Nursing",
-    "Nutrição": "Nutrition",
-    "Saúde Coletiva": "Public Health",
-    "Fonoaudiologia": "Speech-Language Pathology",
-    "Fisioterapia e Terapia Ocupacional": "Physical and Occupational Therapy",
-    "Educação Física": "Physical Education",
-
-    "Agronomia": "Agronomy",
-    "Recursos Florestais e Engenharia Florestal": "Forest Resources and Forest Engineering",
-    "Engenharia Agrícola": "Agricultural Engineering",
-    "Zootecnia": "Animal Science",
-    "Medicina Veterinária": "Veterinary Medicine",
-    "Recursos Pesqueiros e Engenharia de Pesca": "Fishery Resources and Fisheries Engineering",
-    "Ciência e Tecnologia de Alimentos": "Food Science and Technology",
-
-    "Direito": "Law",
-    "Administração": "Business Administration",
-    "Economia": "Economics",
-    "Arquitetura e Urbanismo": "Architecture and Urbanism",
-    "Planejamento Urbano e Regional": "Urban and Regional Planning",
-    "Demografia": "Demography",
-    "Ciência da Informação": "Information Science",
-    "Museologia": "Museology",
-    "Comunicação": "Communication",
-    "Serviço Social": "Social Work",
-    "Economia Doméstica": "Home Economics",
-    "Desenho Industrial": "Industrial Design",
-    "Turismo": "Tourism",
-
-    "Filosofia": "Philosophy",
-    "Sociologia": "Sociology",
-    "Antropologia": "Anthropology",
-    "Arqueologia": "Archaeology",
-    "História": "History",
-    "Geografia": "Geography",
-    "Psicologia": "Psychology",
-    "Educação": "Education",
-    "Ciência Política": "Political Science",
-    "Teologia": "Theology",
-
-    "Linguística": "Linguistics",
-    "Letras": "Literature and Languages",
-    "Artes": "Arts"
-  },
-  es: {
-    "Ciências Exatas e da Terra": "Ciencias Exactas y de la Tierra",
-    "Ciências Biológicas": "Ciencias Biológicas",
-    "Engenharias": "Ingenierías",
-    "Ciências da Saúde": "Ciencias de la Salud",
-    "Ciências Agrárias": "Ciencias Agrarias",
-    "Ciências Sociais Aplicadas": "Ciencias Sociales Aplicadas",
-    "Ciências Humanas": "Humanidades",
-    "Linguística, Letras e Artes": "Lingüística, Letras y Artes",
-    "Outra / Multidisciplinar": "Otra / Multidisciplinaria",
-
-    "Matemática": "Matemática",
-    "Probabilidade e Estatística": "Probabilidad y Estadística",
-    "Ciência da Computação": "Ciencias de la Computación",
-    "Astronomia": "Astronomía",
-    "Física": "Física",
-    "Química": "Química",
-    "Geociências": "Geociencias",
-    "Oceanografia": "Oceanografía",
-
-    "Biologia Geral": "Biología General",
-    "Genética": "Genética",
-    "Botânica": "Botánica",
-    "Zoologia": "Zoología",
-    "Ecologia": "Ecología",
-    "Morfologia": "Morfología",
-    "Fisiologia": "Fisiología",
-    "Bioquímica": "Bioquímica",
-    "Biofísica": "Biofísica",
-    "Farmacologia": "Farmacología",
-    "Imunologia": "Inmunología",
-    "Microbiologia": "Microbiología",
-    "Parasitologia": "Parasitología",
-
-    "Engenharia Civil": "Ingeniería Civil",
-    "Engenharia de Minas": "Ingeniería de Minas",
-    "Engenharia de Materiais e Metalúrgica": "Ingeniería de Materiales y Metalúrgica",
-    "Engenharia Elétrica": "Ingeniería Eléctrica",
-    "Engenharia Mecânica": "Ingeniería Mecánica",
-    "Engenharia Química": "Ingeniería Química",
-    "Engenharia Sanitária": "Ingeniería Sanitaria",
-    "Engenharia de Produção": "Ingeniería Industrial",
-    "Engenharia Nuclear": "Ingeniería Nuclear",
-    "Engenharia de Transportes": "Ingeniería de Transporte",
-    "Engenharia Naval e Oceânica": "Ingeniería Naval y Oceánica",
-    "Engenharia Aeroespacial": "Ingeniería Aeroespacial",
-    "Engenharia Biomédica": "Ingeniería Biomédica",
-
-    "Medicina": "Medicina",
-    "Odontologia": "Odontología",
-    "Farmácia": "Farmacia",
-    "Enfermagem": "Enfermería",
-    "Nutrição": "Nutrición",
-    "Saúde Coletiva": "Salud Colectiva",
-    "Fonoaudiologia": "Fonoaudiología",
-    "Fisioterapia e Terapia Ocupacional": "Fisioterapia y Terapia Ocupacional",
-    "Educação Física": "Educación Física",
-
-    "Agronomia": "Agronomía",
-    "Recursos Florestais e Engenharia Florestal": "Recursos Forestales e Ingeniería Forestal",
-    "Engenharia Agrícola": "Ingeniería Agrícola",
-    "Zootecnia": "Zootecnia",
-    "Medicina Veterinária": "Medicina Veterinaria",
-    "Recursos Pesqueiros e Engenharia de Pesca": "Recursos Pesqueros e Ingeniería Pesquera",
-    "Ciência e Tecnologia de Alimentos": "Ciencia y Tecnología de Alimentos",
-
-    "Direito": "Derecho",
-    "Administração": "Administración",
-    "Economia": "Economía",
-    "Arquitetura e Urbanismo": "Arquitectura y Urbanismo",
-    "Planejamento Urbano e Regional": "Planificación Urbana y Regional",
-    "Demografia": "Demografía",
-    "Ciência da Informação": "Ciencias de la Información",
-    "Museologia": "Museología",
-    "Comunicação": "Comunicación",
-    "Serviço Social": "Trabajo Social",
-    "Economia Doméstica": "Economía Doméstica",
-    "Desenho Industrial": "Diseño Industrial",
-    "Turismo": "Turismo",
-
-    "Filosofia": "Filosofía",
-    "Sociologia": "Sociología",
-    "Antropologia": "Antropología",
-    "Arqueologia": "Arqueología",
-    "História": "Historia",
-    "Geografia": "Geografía",
-    "Psicologia": "Psicología",
-    "Educação": "Educación",
-    "Ciência Política": "Ciencia Política",
-    "Teologia": "Teología",
-
-    "Linguística": "Lingüística",
-    "Letras": "Letras",
-    "Artes": "Artes"
-  }
-};
-
-let CURRENT_LANG = 'pt';
-/* label shown to the participant; the option VALUE stays the Portuguese key */
-function areaLabel(key) {
-  return (CNPQ_LABELS[CURRENT_LANG] && CNPQ_LABELS[CURRENT_LANG][key]) || key;
-}
-
-/*
- * Belief questions. Deliberately a flat array so trimming is a one-line delete.
- * scope: 'solar' | 'galaxy' | 'universe'
- * type: 'life' | 'intel'
- */
-const BELIEF_QUESTIONS = [
-  { id: "life_solar",     scope: "solar",    type: "life",  key: "ctx_q_life_solar" },
-  { id: "life_galaxy",    scope: "galaxy",   type: "life",  key: "ctx_q_life_galaxy" },
-  { id: "intel_galaxy",   scope: "galaxy",   type: "intel", key: "ctx_q_intel_galaxy" },
-  { id: "life_universe",  scope: "universe", type: "life",  key: "ctx_q_life_universe" },
-  { id: "intel_universe", scope: "universe", type: "intel", key: "ctx_q_intel_universe" },
+const AREAS = [
+  "Ciências Exatas e da Terra",
+  "Ciências Biológicas",
+  "Engenharias",
+  "Ciências da Saúde",
+  "Ciências Agrárias",
+  "Ciências Sociais Aplicadas",
+  "Ciências Humanas",
+  "Linguística, Letras e Artes",
+  "Outra / Multidisciplinar",
+  "Sem formação superior"
 ];
 
-const SCALE = [
+/* ISO 3166-1 alpha-2 (+ XK). Names are produced by the browser (Intl.DisplayNames) in the page language. */
+const COUNTRY_CODES = ("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ " +
+  "CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR " +
+  "GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP " +
+  "KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ " +
+  "NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW " +
+  "SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ " +
+  "UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS XK YE YT ZA ZM ZW").split(" ");
+
+const SCALE_LIKELY = [
   { v: "very_unlikely", key: "context_scale_very_unlikely" },
   { v: "unlikely",      key: "context_scale_unlikely" },
   { v: "unsure",        key: "context_scale_unsure" },
   { v: "likely",        key: "context_scale_likely" },
   { v: "very_likely",   key: "context_scale_very_likely" },
 ];
+const SCALE_FAMILIARITY = [
+  { v: "none",     key: "context_fam_none" },
+  { v: "little",   key: "context_fam_little" },
+  { v: "moderate", key: "context_fam_moderate" },
+  { v: "good",     key: "context_fam_good" },
+  { v: "expert",   key: "context_fam_expert" },
+];
+const SCALE_YESNO = [
+  { v: "no",  key: "context_returning_no" },
+  { v: "yes", key: "context_returning_yes" },
+];
 
-function buildAreaSelect() {
-  const sel = document.getElementById('sel-grande');
-  Object.keys(CNPQ_AREAS).forEach(g => {
-    const opt = document.createElement('option');
-    opt.value = g; opt.textContent = areaLabel(g);
-    sel.appendChild(opt);
-  });
-  sel.addEventListener('change', () => {
-    const field = document.getElementById('field-especifica');
-    const esp = document.getElementById('sel-especifica');
-    const placeholder = (window._S && window._S.context_area_placeholder) || 'Selecione…';
-    esp.innerHTML = `<option value="">${placeholder}</option>`;
-    const list = CNPQ_AREAS[sel.value] || [];
-    if (sel.value && list.length) {
-      list.forEach(a => {
-        const o = document.createElement('option');
-        o.value = a; o.textContent = areaLabel(a);
-        esp.appendChild(o);
-      });
-      field.style.display = '';
-    } else {
-      field.style.display = 'none';
-      esp.value = '';
-    }
-    saveState();
-  });
-  document.getElementById('sel-especifica').addEventListener('change', saveState);
-}
+/* single-choice questions. kind 'about' -> top-level field; kind 'belief' -> inside "beliefs".
+   Flat arrays on purpose: trimming a question is a one-line delete. */
+const ABOUT_QUESTIONS = [
+  { id: "familiarity_astro", key: "ctx_q_fam_astro", scale: SCALE_FAMILIARITY },
+  { id: "familiarity_bio",   key: "ctx_q_fam_bio",   scale: SCALE_FAMILIARITY },
+  { id: "returning_self",    key: "ctx_q_returning", scale: SCALE_YESNO },
+];
+const BELIEF_QUESTIONS = [
+  { id: "life_solar",     key: "ctx_q_life_solar",     scale: SCALE_LIKELY },
+  { id: "life_galaxy",    key: "ctx_q_life_galaxy",    scale: SCALE_LIKELY },
+  { id: "intel_galaxy",   key: "ctx_q_intel_galaxy",   scale: SCALE_LIKELY },
+  { id: "life_universe",  key: "ctx_q_life_universe",  scale: SCALE_LIKELY },
+  { id: "intel_universe", key: "ctx_q_intel_universe", scale: SCALE_LIKELY },
+];
 
-/* Tiny markup for question texts: **text** -> <strong>text</strong>.
-   The string is HTML-escaped first, so nothing else can be injected. */
+/* **text** -> <strong>text</strong>; the string is HTML-escaped first, so nothing else can be injected. */
 function emphasize(s) {
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
-function buildBeliefs(S) {
-  const wrap = document.getElementById('beliefs-container');
-  BELIEF_QUESTIONS.forEach(q => {
+function buildSelects(S, lang) {
+  const selG = document.getElementById('sel-grande');
+  AREAS.forEach((a, i) => {
+    const o = document.createElement('option');
+    o.value = a; o.textContent = S['cnpq_' + i] || a;
+    selG.appendChild(o);
+  });
+  selG.addEventListener('change', saveState);
+
+  const selC = document.getElementById('sel-country');
+  let names;
+  try { names = new Intl.DisplayNames([lang], { type: 'region' }); } catch (e) { names = null; }
+  const list = COUNTRY_CODES.map(c => {
+    let n = c;
+    try { if (names) n = names.of(c) || c; } catch (e) {}
+    return { c, n };
+  }).sort((x, y) => x.n.localeCompare(y.n, lang));
+  list.forEach(({ c, n }) => {
+    const o = document.createElement('option');
+    o.value = c; o.textContent = n;
+    selC.appendChild(o);
+  });
+  selC.addEventListener('change', saveState);
+}
+
+function buildChoices(containerId, questions, kind, S) {
+  const wrap = document.getElementById(containerId);
+  questions.forEach(q => {
     const row = document.createElement('div');
     row.className = 'belief-q';
     row.dataset.qid = q.id;
+    row.dataset.kind = kind;
 
     const p = document.createElement('p');
     p.className = 'q-text';
@@ -415,7 +228,7 @@ function buildBeliefs(S) {
 
     const sr = document.createElement('div');
     sr.className = 'scale-row';
-    SCALE.forEach(s => {
+    q.scale.forEach(s => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'scale-btn';
@@ -435,14 +248,18 @@ function buildBeliefs(S) {
 }
 
 function collectState() {
-  const grande = document.getElementById('sel-grande').value;
-  const especifica = document.getElementById('sel-especifica').value;
-  const beliefs = {};
+  const state = {
+    country: document.getElementById('sel-country').value || null,
+    area_grande: document.getElementById('sel-grande').value || null,
+    beliefs: {}
+  };
   document.querySelectorAll('.belief-q').forEach(row => {
     const sel = row.querySelector('.scale-btn.selected');
-    beliefs[row.dataset.qid] = sel ? sel.dataset.value : null;
+    const v = sel ? sel.dataset.value : null;
+    if (row.dataset.kind === 'belief') state.beliefs[row.dataset.qid] = v;
+    else state[row.dataset.qid] = v;
   });
-  return { area_grande: grande || null, area_especifica: especifica || null, beliefs };
+  return state;
 }
 
 function flashSaved() {
@@ -454,10 +271,15 @@ function flashSaved() {
 }
 
 function saveState() {
-  const data = collectState();
-  /* kept only in this browser; sent together with the answers when the survey is finished */
-  localStorage.setItem('drake-context', JSON.stringify(data));
+  /* kept only in this browser; sent together with the answers when the test is finished */
+  localStorage.setItem('drake-context', JSON.stringify(collectState()));
   flashSaved();
+}
+
+function pressButton(qid, kind, value) {
+  const row = document.querySelector(`.belief-q[data-qid="${qid}"][data-kind="${kind}"]`);
+  const btn = row && row.querySelector(`.scale-btn[data-value="${value}"]`);
+  if (btn) btn.classList.add('selected');
 }
 
 function loadSaved() {
@@ -465,21 +287,10 @@ function loadSaved() {
   if (!raw) return;
   try {
     const d = JSON.parse(raw);
-    if (d.area_grande) {
-      document.getElementById('sel-grande').value = d.area_grande;
-      document.getElementById('sel-grande').dispatchEvent(new Event('change'));
-      if (d.area_especifica) document.getElementById('sel-especifica').value = d.area_especifica;
-    }
-    if (d.beliefs) {
-      Object.keys(d.beliefs).forEach(qid => {
-        const v = d.beliefs[qid];
-        if (!v) return;
-        const row = document.querySelector(`.belief-q[data-qid="${qid}"]`);
-        if (!row) return;
-        const btn = row.querySelector(`.scale-btn[data-value="${v}"]`);
-        if (btn) btn.classList.add('selected');
-      });
-    }
+    if (d.country) document.getElementById('sel-country').value = d.country;
+    if (d.area_grande) document.getElementById('sel-grande').value = d.area_grande;
+    ABOUT_QUESTIONS.forEach(q => { if (d[q.id]) pressButton(q.id, 'about', d[q.id]); });
+    Object.keys(d.beliefs || {}).forEach(qid => { if (d.beliefs[qid]) pressButton(qid, 'belief', d.beliefs[qid]); });
   } catch (e) { console.error(e); }
 }
 
@@ -488,7 +299,6 @@ function loadSaved() {
   const ul = new URLSearchParams(location.search).get('lang');
   const bl = (navigator.language || 'pt').slice(0, 2);
   const lang = supported.includes(ul) ? ul : supported.includes(bl) ? bl : 'pt';
-  CURRENT_LANG = lang;
   document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
 
   document.getElementById('back-link').href = `consent.html?lang=${lang}`;
@@ -496,7 +306,7 @@ function loadSaved() {
 
   let S = {};
   try {
-    S = await fetch(`/i18n/${lang}.json`).then(r => r.json());
+    S = await fetch(`i18n/${lang}.json`).then(r => r.json());
   } catch (e) { console.warn('i18n load failed, using defaults'); }
   window._S = S;
 
@@ -505,8 +315,9 @@ function loadSaved() {
     if (S[k] !== undefined) el.textContent = S[k];
   });
 
-  buildAreaSelect();
-  buildBeliefs(S);
+  buildSelects(S, lang);
+  buildChoices('about-container', ABOUT_QUESTIONS, 'about', S);
+  buildChoices('beliefs-container', BELIEF_QUESTIONS, 'belief', S);
   loadSaved();
 
   document.getElementById('next-link').addEventListener('click', () => { saveState(); });
