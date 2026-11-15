@@ -1,0 +1,93 @@
+[
+	{
+		"id": "Ns",
+		"symbolHTML": "N<sub>★</sub>",
+		"paramKey": "Ns_param",
+		"questionKey": "Ns_question",
+		"axisKey": "Ns_axis",
+		"tipLoKey": "Ns_tip_lo",
+		"tipHiKey": "Ns_tip_hi",
+		"axisMode": "log",
+		"tMin": 10,
+		"tMax": 12,
+		"initSpread": 0.5
+	},
+	{
+		"id": "fp",
+		"symbolHTML": "f<sub>p</sub>",
+		"paramKey": "fp_param",
+		"questionKey": "fp_question",
+		"axisKey": "fp_axis",
+		"tipLoKey": "fp_tip_lo",
+		"tipHiKey": "fp_tip_hi",
+		"axisMode": "log",
+		"tMin": -2,
+		"tMax": 0,
+		"initSpread": 0.5
+	},
+	{
+		"id": "ne",
+		"symbolHTML": "n<sub>e</sub>",
+		"paramKey": "ne_param",
+		"questionKey": "ne_question",
+		"axisKey": "ne_axis",
+		"tipLoKey": "ne_tip_lo",
+		"tipHiKey": "ne_tip_hi",
+		"axisMode": "log",
+		"tMin": -6,
+		"tMax": 1,
+		"initSpread": 1.0
+	},
+	{
+		"id": "fl",
+		"symbolHTML": "f<sub>l</sub>",
+		"paramKey": "fl_param",
+		"questionKey": "fl_question",
+		"axisKey": "fl_axis",
+		"tipLoKey": "fl_tip_lo",
+		"tipHiKey": "fl_tip_hi",
+		"axisMode": "log",
+		"tMin": -12,
+		"tMax": 0,
+		"initSpread": 3.0
+	},
+	{
+		"id": "fi",
+		"symbolHTML": "f<sub>i</sub>",
+		"paramKey": "fi_param",
+		"questionKey": "fi_question",
+		"axisKey": "fi_axis",
+		"tipLoKey": "fi_tip_lo",
+		"tipHiKey": "fi_tip_hi",
+		"axisMode": "log",
+		"tMin": -12,
+		"tMax": 0,
+		"initSpread": 3.0
+	},
+	{
+		"id": "fc",
+		"symbolHTML": "f<sub>c</sub>",
+		"paramKey": "fc_param",
+		"questionKey": "fc_question",
+		"axisKey": "fc_axis",
+		"tipLoKey": "fc_tip_lo",
+		"tipHiKey": "fc_tip_hi",
+		"axisMode": "log",
+		"tMin": -9,
+		"tMax": 0,
+		"initSpread": 1.5
+	},
+	{
+		"id": "fL",
+		"symbolHTML": "f<sub>L</sub>",
+		"paramKey": "fL_param",
+		"questionKey": "fL_question",
+		"axisKey": "fL_axis",
+		"tipLoKey": "fL_tip_lo",
+		"tipHiKey": "fL_tip_hi",
+		"axisMode": "log",
+		"tMin": -10,
+		"tMax": 0,
+		"initSpread": 2.0
+	}
+]

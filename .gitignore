@@ -1,0 +1,12 @@
+backend/__pycache__/
+analysis/__pycache__/
+*/__pycache__/
+__pycache__/
+presentation/
+friends/
+conference/
+server.txt
+token.txt
+.env
+*.mp4
+*.csv

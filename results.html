@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Resultados — Equação de Drake</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0
+		}
+
+		body {
+			font-family: system-ui, -apple-system, sans-serif;
+			background: #f5f4f0;
+			color: #1a1a18;
+			min-height: 100vh;
+			display: flex;
+			justify-content: center;
+			padding: 2.5rem 1.25rem;
+			opacity: 0;
+			transition: opacity .15s ease;
+		}
+
+		body.ready {
+			opacity: 1
+		}
+
+		/* wider wrap on desktop */
+		#wrap {
+			width: 100%;
+			max-width: 600px
+		}
+
+		@media(min-width:800px) {
+			#wrap {
+				max-width: 820px
+			}
+		}
+
+		@media(min-width:1100px) {
+			#wrap {
+				max-width: 960px
+			}
+		}
+
+		.eyebrow {
+			font-size: 11px;
+			letter-spacing: .1em;
+			text-transform: uppercase;
+			color: #888780;
+			margin-bottom: 1rem
+		}
+
+		h1 {
+			font-size: 24px;
+			font-weight: 600;
+			line-height: 1.25;
+			margin-bottom: .6rem
+		}
+
+		.subtitle {
+			font-size: 15px;
+			color: #5f5e5a;
+			line-height: 1.6;
+			margin-bottom: 2rem
+		}
+
+		/* cards */
+		.result-card {
+			background: #fff;
+			border: 0.5px solid #d3d1c7;
+			border-radius: 12px;
+			padding: 1.4rem;
+			margin-bottom: 1.25rem
+		}
+
+		.result-card h2 {
+			font-size: 13px;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: .06em;
+			color: #888780;
+			margin-bottom: .75rem
+		}
+
+		/* stats row — same weight as everything else, no big number */
+		.stats-row {
+			display: flex;
+			gap: 1.4rem;
+			flex-wrap: wrap;
+			font-size: 13px;
+			color: #888780;
+			margin-bottom: .85rem;
+			padding-bottom: .85rem;
+			border-bottom: 0.5px solid #ebe9e0;
+		}
+
+		.stats-row span b {
+			font-weight: 500;
+			color: #5f5e5a;
+			font-family: monospace
+		}
+
+		/* canvas */
+		.canvas-wrap {
+			position: relative;
+			width: 100%;
+			height: 220px;
+			margin-bottom: .6rem
+		}
+
+		.canvas-wrap canvas {
+			width: 100%;
+			height: 100%;
+			display: block
+		}
+
+		/* legend */
+		.legend {
+			display: flex;
+			gap: 1.2rem;
+			flex-wrap: wrap;
+			font-size: 12px;
+			color: #888780;
+			margin-bottom: .75rem
+		}
+
+		.legend-item {
+			display: flex;
+			align-items: center;
+			gap: 5px
+		}
+
+		.swatch-line {
+			width: 26px;
+			height: 3px;
+			border-radius: 2px;
+			flex-shrink: 0
+		}
+
+		.swatch-line.your {
+			background: rgba(20, 140, 90, .85)
+		}
+
+		.swatch-line.comm {
+			background: rgba(180, 80, 40, .8)
+		}
+
+		.swatch-dash {
+			width: 26px;
+			height: 0;
+			flex-shrink: 0
+		}
+
+		.swatch-dash.mw {
+			border-top: 2.5px dashed rgba(180, 110, 20, .85)
+		}
+
+		.swatch-dash.univ {
+			border-top: 2.5px dashed rgba(50, 80, 180, .85)
+		}
+
+		/* probability table */
+		.prob-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: .25rem;
+			margin-bottom: .5rem
+		}
+
+		.prob-table td {
+			font-size: 12px;
+			padding: 6px 8px;
+			vertical-align: middle;
+			border-top: 0.5px solid #ebe9e0
+		}
+
+		.prob-table tr:first-child td {
+			border-top: none
+		}
+
+		.prob-label {
+			color: #5f5e5a;
+			line-height: 1.5
+		}
+
+		.prob-value {
+			text-align: right;
+			font-family: monospace;
+			font-size: 13px;
+			font-weight: 500;
+			white-space: nowrap
+		}
+
+		.color-not-alone-mw {
+			color: #1a8a50
+		}
+
+		.color-alone-mw {
+			color: #a06010
+		}
+
+		.color-alone-univ {
+			color: #3050a0
+		}
+
+		/* mc note */
+		.mc-note {
+			font-size: 11px;
+			color: #888780;
+			text-align: center;
+			margin-top: .35rem;
+			line-height: 1.5
+		}
+
+		/* community note */
+		.community-note {
+			font-size: 13px;
+			color: #888780;
+			font-style: italic;
+			text-align: center;
+			padding: .4rem 0
+		}
+
+		/* param table */
+		.param-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: .25rem
+		}
+
+		.param-table th {
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: .05em;
+			color: #888780;
+			font-weight: 500;
+			text-align: left;
+			padding: 0 0 6px
+		}
+
+		.param-table th:last-child {
+			text-align: right
+		}
+
+		.param-table td {
+			font-size: 13px;
+			padding: 7px 0;
+			border-top: 0.5px solid #ebe9e0;
+			color: #1a1a18;
+			vertical-align: middle
+		}
+
+		.param-table td:last-child {
+			text-align: right;
+			font-family: monospace;
+			font-size: 12px;
+			color: #5f5e5a
+		}
+
+		.param-sym {
+			font-family: monospace;
+			font-size: 12px;
+			color: #888780;
+			width: 28px
+		}
+
+		.skipped-tag {
+			font-size: 10px;
+			color: #ba7517;
+			background: #faeeda;
+			padding: 2px 7px;
+			border-radius: 4px
+		}
+
+		/* actions */
+		.action-row {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+			margin-bottom: 1.5rem
+		}
+
+		.action-btn {
+			flex: 1;
+			min-width: 140px;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 7px;
+			padding: 11px 16px;
+			font-size: 14px;
+			font-family: inherit;
+			border-radius: 8px;
+			cursor: pointer;
+			text-decoration: none;
+			transition: opacity .12s
+		}
+
+		.action-btn.primary {
+			background: #1a1a18;
+			color: #f5f4f0;
+			border: none;
+			font-weight: 500
+		}
+
+		.action-btn.primary:hover {
+			opacity: .85
+		}
+
+		.action-btn.secondary {
+			background: transparent;
+			border: 0.5px solid #b4b2a9;
+			color: #1a1a18
+		}
+
+		.action-btn.secondary:hover {
+			background: #f1efe8
+		}
+
+		.footer-note {
+			font-size: 12px;
+			color: #888780;
+			text-align: center;
+			line-height: 1.6
+		}
+
+		@media(prefers-color-scheme:dark) {
+			body {
+				background: #1a1a18;
+				color: #f1efe8
+			}
+
+			.eyebrow {
+				color: #9c9a92
+			}
+
+			.subtitle {
+				color: #b4b2a9
+			}
+
+			.legend {
+				color: #9c9a92
+			}
+
+			.mc-note {
+				color: #9c9a92
+			}
+
+			.community-note {
+				color: #9c9a92
+			}
+
+			.result-card {
+				background: #242422;
+				border-color: #3a3a37
+			}
+
+			.result-card h2 {
+				color: #9c9a92
+			}
+
+			.stats-row {
+				color: #9c9a92;
+				border-color: #3a3a37
+			}
+
+			.stats-row span b {
+				color: #b4b2a9
+			}
+
+			.prob-table td {
+				border-color: #3a3a37
+			}
+
+			.prob-label {
+				color: #b4b2a9
+			}
+
+			.color-not-alone-mw {
+				color: #30c070
+			}
+
+			.color-alone-mw {
+				color: #d4a040
+			}
+
+			.color-alone-univ {
+				color: #7090e0
+			}
+
+			.swatch-dash.mw {
+				border-top-color: rgba(210, 160, 50, .85)
+			}
+
+			.swatch-dash.univ {
+				border-top-color: rgba(110, 140, 230, .85)
+			}
+
+			.param-table th {
+				color: #9c9a92
+			}
+
+			.param-table td {
+				color: #f1efe8;
+				border-color: #3a3a37
+			}
+
+			.param-table td:last-child {
+				color: #b4b2a9
+			}
+
+			.param-sym {
+				color: #9c9a92
+			}
+
+			.skipped-tag {
+				background: #2e1800;
+				color: #fac775
+			}
+
+			.action-btn.primary {
+				background: #d4d2c8;
+				color: #1a1a18
+			}
+
+			.action-btn.secondary {
+				border-color: #444441;
+				color: #f1efe8
+			}
+
+			.action-btn.secondary:hover {
+				background: #333330
+			}
+
+			.footer-note {
+				color: #8a8880
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div id="wrap">
+		<p class="eyebrow" data-i18n="results_eyebrow">Equação de Drake · Levantamento Astrobiológico</p>
+		<h1 data-i18n="results_title">Seus resultados</h1>
+		<p class="subtitle" data-i18n="results_subtitle">Com base nas suas distribuições, calculamos a sua estimativa
+			pessoal de N.</p>
+
+		<!-- N distribution card -->
+		<div class="result-card">
+			<h2 data-i18n="results_your_n">Sua distribuição de N</h2>
+
+			<!-- stats — same visual weight, no dominant number -->
+			<div class="stats-row" id="stats-row">
+				<span><span data-i18n="results_stats_median">Mediana</span>: <b id="stat-median">—</b></span>
+				<span><span data-i18n="results_stats_iqr">IQR</span>: <b id="stat-iqr">—</b></span>
+				<span><span data-i18n="results_stats_90">Intervalo 90%</span>: <b id="stat-90">—</b></span>
+			</div>
+
+			<!-- legend -->
+			<div class="legend">
+				<div class="legend-item">
+					<div class="swatch-line your"></div>
+					<span data-i18n="results_your_curve">Sua distribuição</span>
+				</div>
+				<div class="legend-item" id="comm-legend-item" style="display:none">
+					<div class="swatch-line comm"></div>
+					<span data-i18n="results_comm_curve">Comunidade</span>
+				</div>
+				<div class="legend-item">
+					<div class="swatch-dash mw"></div>
+					<span data-i18n="results_ref_n1_label">N = 1</span>
+				</div>
+				<div class="legend-item">
+					<div class="swatch-dash univ"></div>
+					<span data-i18n="results_ref_nu_label">N = 5×10⁻¹³</span>
+				</div>
+			</div>
+
+			<div class="canvas-wrap" id="n-canvas-wrap">
+				<canvas id="n-canvas" role="img" aria-label="Distribuição de N"></canvas>
+			</div>
+
+			<!-- three probability rows -->
+			<table class="prob-table">
+				<tr>
+					<td class="prob-label" data-i18n="results_p_not_alone_mw">P(não sozinhos na Via Láctea) — área à
+						direita de N = 1</td>
+					<td class="prob-value color-not-alone-mw" id="prob-not-alone-mw">—</td>
+				</tr>
+				<tr>
+					<td class="prob-label" data-i18n="results_p_alone_mw">P(sozinhos na Via Láctea) — área à esquerda de
+						N = 1</td>
+					<td class="prob-value color-alone-mw" id="prob-alone-mw">—</td>
+				</tr>
+				<tr>
+					<td class="prob-label" data-i18n="results_p_alone_univ">P(sozinhos no universo observável) — área à
+						esquerda de N = 5×10⁻¹³</td>
+					<td class="prob-value color-alone-univ" id="prob-alone-univ">—</td>
+				</tr>
+			</table>
+
+			<p class="mc-note" data-i18n="results_mc_note">Distribuição calculada por Monte Carlo (20 000 amostras) ·
+				curva suavizada por KDE</p>
+		</div>
+
+		<!-- community note: shown when community curve absent -->
+		<div class="result-card" id="comm-note-card">
+			<p class="community-note" data-i18n="results_comm_few">Ainda há poucas respostas para exibir a distribuição
+				da comunidade. Volte mais tarde.</p>
+		</div>
+
+		<!-- param summary -->
+		<div class="result-card">
+			<h2 data-i18n="results_summary">Resumo dos seus parâmetros</h2>
+			<table class="param-table">
+				<thead>
+					<tr>
+						<th class="param-sym"></th>
+						<th data-i18n="results_th_param">Parâmetro</th>
+						<th data-i18n="results_th_mode">Moda · IQR</th>
+					</tr>
+				</thead>
+				<tbody id="param-tbody"></tbody>
+			</table>
+		</div>
+
+		<!-- actions -->
+		<div class="action-row">
+			<a class="action-btn primary" id="share-btn" href="#"><span id="share-icon">↗</span> <span id="share-label" data-i18n="results_share">Compartilhar
+					resultados</span></a>
+			<a class="action-btn secondary" id="redo-btn" href="#">↺ <span data-i18n="results_redo">Refazer
+					levantamento</span></a>
+		</div>
+		<p class="footer-note" data-i18n="results_footer">Obrigado pela participação.</p>
+		<p class="footer-note" style="margin-top:.5rem">
+			<a href="https://github.com/ferdesmello/drakelicit" target="_blank" rel="noopener" id="source-link"
+				style="color:#888780;text-underline-offset:3px">
+				↗ <span data-i18n="results_source">Código-fonte e mais informações</span>
+			</a>
+		</p>
+	</div>
+
+	<script>
+		/* ── tick helpers ── */
+		function superscript(n) {
+			const map = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+			return String(n).split('').map(c => map[c] || c).join('');
+		}
+		function formatLogTick(e) {
+			if (e === -3) return '0.001'; if (e === -2) return '0.01'; if (e === -1) return '0.1';
+			if (e === 0) return '1'; if (e === 1) return '10'; if (e === 2) return '100'; if (e === 3) return '1000';
+			return '10' + superscript(e);
+		}
+		function fmtV(v) {
+			if (!isFinite(v) || v === 0) return '—';
+			const a = Math.abs(v);
+			if (a >= 1e4 || (a > 0 && a < 0.01)) return v.toExponential(1).replace('e+', 'e');
+			if (a >= 100) return v.toFixed(0); if (a >= 10) return v.toFixed(1);
+			if (a >= 1) return v.toFixed(2); if (a >= 0.1) return v.toFixed(3);
+			return v.toFixed(4);
+		}
+		function fmtPct(p) {
+			if (p === null || !isFinite(p)) return '—';
+			if (p >= 0.9995) return '>99.9%';
+			if (p <= 0.0005) return '<0.1%';
+			return (p * 100).toFixed(1) + '%';
+		}
+
+		/* ── numerical integration of discrete PDF ── */
+		function integratePDF(grid, pdf, tLo, tHi) {
+			let sum = 0;
+			for (let i = 0; i < grid.length - 1; i++) {
+				const t0 = grid[i], t1 = grid[i + 1];
+				if (t1 <= tLo || t0 >= tHi) continue;
+				const lo = Math.max(t0, tLo), hi = Math.min(t1, tHi);
+				const frac = (hi - lo) / (t1 - t0);
+				sum += 0.5 * (pdf[i] + pdf[i + 1]) * (t1 - t0) * frac;
+			}
+			return sum;
+		}
+		function probAbove(dist, logT) { return integratePDF(dist.log_N_grid, dist.pdf, logT, Infinity) / Math.max(1e-30, integratePDF(dist.log_N_grid, dist.pdf, -Infinity, Infinity)); }
+		function probBelow(dist, logT) { return integratePDF(dist.log_N_grid, dist.pdf, -Infinity, logT) / Math.max(1e-30, integratePDF(dist.log_N_grid, dist.pdf, -Infinity, Infinity)); }
+
+		/* ── draw chart ── */
+		function drawChart(yourDist, commDist, target) {
+			/* target = { canvas, dpr, cssW, cssH } renders off-screen (image export);
+			   without it the on-page canvas is used. */
+			const canvas = target ? target.canvas : document.getElementById('n-canvas');
+			const dpr = target ? target.dpr : (window.devicePixelRatio || 1);
+			const cssW = target ? target.cssW : document.getElementById('n-canvas-wrap').clientWidth;
+			const cssH = target ? target.cssH : 220;
+			if (!target) { canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px'; }
+			canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+
+			const ctx = canvas.getContext('2d');
+			const W = canvas.width, H = canvas.height;
+			ctx.clearRect(0, 0, W, H);
+
+			const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+			/* extra bottom padding to fit axis label */
+			const PAD = { top: 10 * dpr, right: 14 * dpr, bottom: 48 * dpr, left: 14 * dpr };
+			const pw = W - PAD.left - PAD.right, ph = H - PAD.top - PAD.bottom;
+
+			const REF_MW = 0;
+			const REF_UNIV = Math.log10(5e-13);  /* ≈ -12.301 */
+
+			/* x-axis range: data + both ref lines */
+			const grids = [];
+			if (yourDist) grids.push(yourDist.log_N_grid);
+			if (commDist) grids.push(commDist.log_N_grid);
+			const allT = grids.flat();
+			const tMin = Math.min(Math.min(...allT), REF_UNIV - 1);
+			const tMax = Math.max(Math.max(...allT), REF_MW + 1);
+			const tSpan = tMax - tMin;
+
+			function xpx(t) { return PAD.left + ((t - tMin) / tSpan) * pw; }
+			function ypxF(y, ymax) { return PAD.top + ph - (Math.min(y, ymax) / ymax) * ph; }
+
+			function maxInRange(dist) {
+				let m = 0;
+				dist.log_N_grid.forEach((t, i) => { if (t >= tMin && t <= tMax && dist.pdf[i] > m) m = dist.pdf[i]; });
+				return m;
+			}
+			let ymax = 0;
+			if (yourDist) ymax = maxInRange(yourDist);
+			if (commDist) ymax = Math.max(ymax, maxInRange(commDist));
+			if (ymax === 0) ymax = 1;
+			ymax *= 1.18;
+
+			function drawCurve(dist, cFill, cStroke) {
+				const g = dist.log_N_grid, p = dist.pdf;
+				ctx.beginPath(); ctx.moveTo(xpx(g[0]), ypxF(0, ymax));
+				for (let i = 0; i < g.length; i++) ctx.lineTo(xpx(g[i]), ypxF(p[i], ymax));
+				ctx.lineTo(xpx(g[g.length - 1]), ypxF(0, ymax));
+				ctx.closePath(); ctx.fillStyle = cFill; ctx.fill();
+				ctx.beginPath(); ctx.moveTo(xpx(g[0]), ypxF(p[0], ymax));
+				for (let i = 1; i < g.length; i++) ctx.lineTo(xpx(g[i]), ypxF(p[i], ymax));
+				ctx.strokeStyle = cStroke; ctx.lineWidth = 1.8 * dpr; ctx.stroke();
+			}
+
+			/* community (reddish) behind, user (greenish) in front */
+			if (commDist) {
+				drawCurve(commDist,
+					dark ? 'rgba(200,80,40,.22)' : 'rgba(180,60,20,.18)',
+					dark ? 'rgba(210,90,50,.88)' : 'rgba(170,55,20,.82)');
+			}
+			if (yourDist) {
+				drawCurve(yourDist,
+					dark ? 'rgba(30,170,110,.28)' : 'rgba(20,150,90,.22)',
+					dark ? 'rgba(30,190,120,.92)' : 'rgba(15,140,80,.88)');
+}
+
+			/* ── reference lines ── */
+			function drawRefLine(t, color, label) {
+				const px = xpx(t);
+				if (px < PAD.left - 2 || px > W - PAD.right + 2) return;
+				ctx.save();
+				ctx.beginPath(); ctx.moveTo(px, PAD.top); ctx.lineTo(px, PAD.top + ph);
+				ctx.strokeStyle = color; ctx.lineWidth = 1.5 * dpr;
+				ctx.setLineDash([4 * dpr, 3 * dpr]); ctx.stroke(); ctx.setLineDash([]);
+				const fPx = Math.max(14, Math.round(14 * dpr));
+				ctx.font = `500 ${fPx}px system-ui,-apple-system,sans-serif`;
+				ctx.fillStyle = color; ctx.textBaseline = 'bottom'; ctx.textAlign = 'left';
+				ctx.fillText(label, px + 3 * dpr, PAD.top + ph - 2 * dpr);
+				ctx.restore();
+			}
+			drawRefLine(REF_MW,
+				dark ? 'rgba(215,155,50,.92)' : 'rgba(175,110,20,.88)',
+				'N=1');
+			drawRefLine(REF_UNIV,
+				dark ? 'rgba(110,140,225,.92)' : 'rgba(50,80,180,.88)',
+				'N=5×10⁻¹³');
+
+			/* ── axis line ── */
+			const cAx = dark ? 'rgba(255,255,255,.25)' : 'rgba(0,0,0,.25)';
+			ctx.beginPath();
+			ctx.moveTo(PAD.left, PAD.top + ph); ctx.lineTo(PAD.left + pw, PAD.top + ph);
+			ctx.strokeStyle = cAx; ctx.lineWidth = dpr; ctx.stroke();
+
+			/* ── tick labels ── */
+			const fPx = Math.max(14, Math.round(16 * dpr));
+			const cTxt = dark ? 'rgba(255,255,255,.72)' : 'rgba(0,0,0,.68)';
+			ctx.fillStyle = cTxt;
+			ctx.font = `${fPx}px system-ui,-apple-system,sans-serif`;
+			ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+			const tickY = PAD.top + ph + 4 * dpr;
+			const range = Math.ceil(tMax) - Math.floor(tMin);
+			const step = range <= 10 ? 1 : range <= 20 ? 2 : range <= 50 ? 5 : 10;
+			const minGap = 34 * dpr;
+			const cTick = dark ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.50)';   /* tick marks (the axis line itself stays fainter) */
+			let lastPx = -Infinity;
+			const labelled = new Set();
+			/* labelled ticks sit on multiples of `step` (… -10, -5, 0, 5 …) so that 10⁰ is always a candidate;
+			   one is skipped if it would collide with the previous label */
+			for (let e = Math.ceil(tMin / step) * step; e <= tMax + 1e-9; e += step) {
+				const px = xpx(e);
+				if (px - lastPx < minGap || px < PAD.left || px > W - PAD.right) continue;
+				lastPx = px; labelled.add(e);
+				ctx.fillText(formatLogTick(e), px, tickY);
+				ctx.beginPath(); ctx.moveTo(px, PAD.top + ph); ctx.lineTo(px, PAD.top + ph + 4 * dpr);
+				ctx.strokeStyle = cTick; ctx.lineWidth = dpr; ctx.stroke();
+			}
+			/* every other whole decade: a shorter tick without label */
+			for (let e = Math.ceil(tMin); e <= Math.floor(tMax); e++) {
+				if (labelled.has(e)) continue;
+				const px = xpx(e);
+				if (px < PAD.left || px > W - PAD.right) continue;
+				ctx.beginPath(); ctx.moveTo(px, PAD.top + ph); ctx.lineTo(px, PAD.top + ph + 2.5 * dpr);
+				ctx.strokeStyle = cTick; ctx.lineWidth = dpr; ctx.stroke();
+			}
+
+			/* ── x-axis label "N" centred below ticks ── */
+			const labelFPx = Math.max(14, Math.round(14 * dpr));
+			ctx.font = `italic ${labelFPx}px system-ui,-apple-system,sans-serif`;
+			ctx.fillStyle = cTxt; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+			ctx.fillText((window._S && window._S.results_axis_label) || 'N  (escala log₁₀)', PAD.left + pw / 2, H - 2 * dpr);
+		}
+
+		/* ══ image export (download / native share) ═════════════════════════
+		 * Builds a PNG of the results (chart + probabilities + parameter table)
+		 * from what is already on screen. No external library: the page is
+		 * re-composed on an off-screen canvas, and the chart reuses drawChart().
+		 * The image carries only the survey's address — never the session link,
+		 * because that private UUID is the only key to the raw answers.
+		 */
+		const EXPORT_FILENAME = 'drake-equation-results.png';
+
+		function canShareFilesNow() {
+			try {
+				return window.matchMedia('(pointer:coarse)').matches && !!navigator.canShare &&
+					navigator.canShare({ files: [new File([''], 'x.png', { type: 'image/png' })] });
+			} catch (e) { return false; }
+		}
+
+		function parseSym(html) {            /* "f<sub>p</sub>" -> [{t:'f'},{t:'p',sub:true}] */
+			const parts = []; const re = /<sub>(.*?)<\/sub>|([^<]+)/g; let m;
+			while ((m = re.exec(html))) parts.push(m[1] !== undefined ? { t: m[1], sub: true } : { t: m[2], sub: false });
+			return parts;
+		}
+		function wrapText(ctx, text, maxW) {
+			const words = String(text).split(/\s+/); const lines = []; let line = '';
+			words.forEach(w => {
+				const test = line ? line + ' ' + w : w;
+				if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test;
+			});
+			if (line) lines.push(line);
+			return lines;
+		}
+		function roundRect(ctx, x, y, w, h, r) {
+			ctx.beginPath(); ctx.moveTo(x + r, y);
+			ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+			ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+		}
+
+		/* read everything that is on screen (texts are already translated) */
+		function collectExportData(yourDist, commDist) {
+			const T = key => {
+				const el = document.querySelector(`[data-i18n="${key}"]`);
+				return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+			};
+			const stats = Array.from(document.querySelectorAll('#stats-row > span')).map(s => ({
+				label: s.firstElementChild.textContent, value: s.querySelector('b').textContent
+			}));
+			const legend = Array.from(document.querySelectorAll('.legend-item'))
+				.filter(el => el.style.display !== 'none')
+				.map(el => {
+					const kind = ['your', 'comm', 'mw', 'univ'].find(k => el.firstElementChild.classList.contains(k));
+					return { kind, dashed: kind === 'mw' || kind === 'univ', label: el.querySelector('span').textContent.trim() };
+				});
+			const probs = [['prob-not-alone-mw', 'green'], ['prob-alone-mw', 'amber'], ['prob-alone-univ', 'blue']]
+				.map(([id, color]) => {
+					const td = document.getElementById(id);
+					return { color, value: td.textContent,
+						label: td.parentElement.querySelector('.prob-label').textContent.replace(/\s+/g, ' ').trim() };
+				});
+			const params = Array.from(document.querySelectorAll('#param-tbody tr')).map(tr => ({
+				symbolHTML: tr.cells[0].innerHTML, name: tr.cells[1].textContent,
+				skipped: !!tr.querySelector('.skipped-tag'),
+				value: tr.cells[2].textContent.replace(/\s+/g, ' ').trim()
+			}));
+			return { yourDist, commDist, stats, legend, probs, params, url: location.host,
+				eyebrow: T('results_eyebrow'), title: T('results_title'), yourN: T('results_your_n'),
+				mcNote: T('results_mc_note'), summary: T('results_summary'),
+				thParam: T('results_th_param'), thMode: T('results_th_mode') };
+		}
+
+		function renderResultsImage(d) {
+			const SC = 2, W = 900, P = 36, CP = 24, IW = W - 2 * P - 2 * CP, X0 = P + CP, BIG_H = 2000;
+			const SANS = 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+			const MONO = 'ui-monospace,Menlo,Consolas,monospace';
+			const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+			const C = dark
+				? { bg: '#1a1a18', card: '#242422', border: '#3a3a37', txt: '#f1efe8', mute: '#b4b2a9', faint: '#9c9a92', rule: '#3a3a37',
+					green: '#30c070', amber: '#d4a040', blue: '#7090e0', warn: '#e0a84a',
+					your: 'rgba(30,190,120,.92)', comm: 'rgba(210,90,50,.88)', mw: 'rgba(215,155,50,.92)', univ: 'rgba(110,140,225,.92)' }
+				: { bg: '#f5f4f0', card: '#ffffff', border: '#d3d1c7', txt: '#1a1a18', mute: '#5f5e5a', faint: '#888780', rule: '#ebe9e0',
+					green: '#1a8a50', amber: '#a06010', blue: '#3050a0', warn: '#ba7517',
+					your: 'rgba(15,140,80,.88)', comm: 'rgba(170,55,20,.82)', mw: 'rgba(175,110,20,.88)', univ: 'rgba(50,80,180,.88)' };
+
+			const big = document.createElement('canvas');
+			big.width = W * SC; big.height = BIG_H * SC;
+			const ctx = big.getContext('2d');
+			ctx.scale(SC, SC);
+			ctx.textBaseline = 'top';
+
+			const font = (size, weight, family) => `${weight || 400} ${size}px ${family || SANS}`;
+			function text(s, x, y, o) {
+				o = o || {};
+				ctx.font = font(o.size || 14, o.weight, o.family);
+				ctx.fillStyle = o.color || C.txt; ctx.textAlign = o.align || 'left';
+				ctx.fillText(s, x, y);
+				return ctx.measureText(s).width;
+			}
+			function rule(y) {
+				ctx.beginPath(); ctx.moveTo(X0, y); ctx.lineTo(X0 + IW, y);
+				ctx.strokeStyle = C.rule; ctx.lineWidth = 1; ctx.setLineDash([]); ctx.stroke();
+			}
+			/* cards are painted AFTER their content, behind it (destination-over),
+			   because their height is only known once the content is laid out */
+			function card(y0, y1) {
+				ctx.save(); ctx.globalCompositeOperation = 'destination-over';
+				roundRect(ctx, P, y0, W - 2 * P, y1 - y0, 12);
+				ctx.strokeStyle = C.border; ctx.lineWidth = 1; ctx.stroke();   /* border first … */
+				ctx.fillStyle = C.card; ctx.fill();                            /* … fill goes behind it */
+				ctx.restore();
+			}
+			function drawSym(html, x, y) {
+				let px = x;
+				parseSym(html).forEach(p => {
+					px += text(p.t, px, p.sub ? y + 6 : y + 1, { size: p.sub ? 10 : 14, family: MONO, color: C.faint });
+				});
+			}
+
+			let y = P;
+			text(d.eyebrow.toUpperCase(), P, y, { size: 12, color: C.faint }); y += 24;
+			text(d.title, P, y, { size: 30, weight: 600 }); y += 52;
+
+			/* ── card 1: your N distribution ── */
+			const c1 = y; let cy = y + CP;
+			text(d.yourN.toUpperCase(), X0, cy, { size: 13, weight: 600, color: C.faint }); cy += 30;
+
+			let sx = X0;
+			d.stats.forEach(s => {
+				ctx.font = font(15); const wl = ctx.measureText(s.label + ': ').width;
+				ctx.font = font(15, 500, MONO); const wv = ctx.measureText(s.value).width;
+				if (sx > X0 && sx + wl + wv > X0 + IW) { sx = X0; cy += 24; }
+				text(s.label + ': ', sx, cy, { size: 15, color: C.faint });
+				text(s.value, sx + wl, cy, { size: 15, weight: 500, family: MONO, color: C.mute });
+				sx += wl + wv + 28;
+			});
+			cy += 28; rule(cy); cy += 14;
+
+			let lx = X0;
+			d.legend.forEach(it => {
+				ctx.font = font(13); const w = ctx.measureText(it.label).width;
+				if (lx > X0 && lx + 32 + w > X0 + IW) { lx = X0; cy += 22; }
+				ctx.beginPath(); ctx.moveTo(lx, cy + 8); ctx.lineTo(lx + 26, cy + 8);
+				ctx.strokeStyle = C[it.kind]; ctx.lineWidth = it.dashed ? 2.5 : 3;
+				ctx.setLineDash(it.dashed ? [5, 3] : []); ctx.stroke(); ctx.setLineDash([]);
+				text(it.label, lx + 32, cy, { size: 13, color: C.faint });
+				lx += 32 + w + 22;
+			});
+			cy += 28;
+
+			const CH = 300, cv = document.createElement('canvas');
+			drawChart(d.yourDist, d.commDist, { canvas: cv, dpr: SC, cssW: IW, cssH: CH });
+			ctx.drawImage(cv, X0, cy, IW, CH); cy += CH + 14;
+
+			d.probs.forEach((p, i) => {
+				ctx.font = font(14);
+				const lines = wrapText(ctx, p.label, IW - 130);
+				if (i > 0) rule(cy);
+				lines.forEach((ln, k) => text(ln, X0, cy + 7 + k * 20, { size: 14, color: C.faint }));
+				text(p.value, X0 + IW, cy + 7 + ((lines.length - 1) * 20) / 2,
+					{ size: 16, weight: 500, family: MONO, color: C[p.color], align: 'right' });
+				cy += lines.length * 20 + 14;
+			});
+			cy += 6;
+			ctx.font = font(12);
+			wrapText(ctx, d.mcNote, IW).forEach(ln => { text(ln, X0 + IW / 2, cy, { size: 12, color: C.faint, align: 'center' }); cy += 17; });
+			cy += CP - 4;
+			card(c1, cy);
+			y = cy + 20;
+
+			/* ── card 2: parameter summary ── */
+			const c2 = y; cy = y + CP;
+			text(d.summary.toUpperCase(), X0, cy, { size: 13, weight: 600, color: C.faint }); cy += 30;
+			text(d.thParam.toUpperCase(), X0 + 52, cy, { size: 11, color: C.faint });
+			text(d.thMode.toUpperCase(), X0 + IW, cy, { size: 11, color: C.faint, align: 'right' }); cy += 22;
+			d.params.forEach(r => {
+				rule(cy);
+				ctx.font = font(14);
+				const lines = wrapText(ctx, r.name, IW - 52 - 300 - 12);
+				const ty = cy + 8;
+				drawSym(r.symbolHTML, X0, ty);
+				lines.forEach((ln, k) => text(ln, X0 + 52, ty + k * 20, { size: 14 }));
+				if (r.skipped) text(r.value, X0 + IW, ty, { size: 12, color: C.warn, align: 'right' });
+				else text(r.value, X0 + IW, ty + 1, { size: 13, family: MONO, color: C.mute, align: 'right' });
+				cy += Math.max(1, lines.length) * 20 + 16;
+			});
+			cy += CP - 8;
+			card(c2, cy);
+			y = cy + 26;
+
+			text(d.url, W / 2, y, { size: 15, weight: 500, align: 'center' });
+			y += 22 + P - 10;
+
+			/* page background, behind everything */
+			ctx.save(); ctx.globalCompositeOperation = 'destination-over';
+			ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, BIG_H); ctx.restore();
+
+			const H = Math.ceil(y);
+			const out = document.createElement('canvas');
+			out.width = W * SC; out.height = H * SC;
+			out.getContext('2d').drawImage(big, 0, 0, W * SC, H * SC, 0, 0, W * SC, H * SC);
+			return out;
+		}
+
+		/* wire the button. The image is pre-rendered so the click handler can
+		   share/download immediately (navigator.share needs a fresh user gesture). */
+		function setupExport(yourDist, commDist, nativeShare) {
+			const btn = document.getElementById('share-btn');
+			const ready = new Promise(resolve => {
+				try { renderResultsImage(collectExportData(yourDist, commDist)).toBlob(resolve, 'image/png'); }
+				catch (e) { console.warn('image export failed:', e); resolve(null); }
+			});
+			btn.onclick = async function (e) {
+				e.preventDefault();
+				const blob = await ready;
+				if (!blob) return;
+				const file = new File([blob], EXPORT_FILENAME, { type: 'image/png' });
+				if (nativeShare) {
+					try {
+						await navigator.share({ files: [file], title: document.title, text: location.origin + '/' });
+						return;
+					} catch (err) {
+						if (err && err.name === 'AbortError') return;   /* user closed the share sheet */
+					}                                                  /* anything else: fall back to download */
+				}
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url; a.download = EXPORT_FILENAME;
+				document.body.appendChild(a); a.click(); a.remove();
+				setTimeout(() => URL.revokeObjectURL(url), 2000);
+			};
+		}
+
+		/* ── main async block ── */
+		(async function () {
+			const supported = ['pt', 'en', 'es'];
+			const qp = new URLSearchParams(location.search);
+			const ul = qp.get('lang'), bl = (navigator.language || 'pt').slice(0, 2);
+			const lang = supported.includes(ul) ? ul : supported.includes(bl) ? bl : 'pt';
+			document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang;
+
+			document.getElementById('redo-btn').onclick = function (e) {
+				e.preventDefault();
+				Object.keys(localStorage).filter(k => k.startsWith('drake-')).forEach(k => localStorage.removeItem(k));
+				sessionStorage.removeItem('drake_session');
+				location.href = `consent.html?lang=${lang}`;
+			};
+
+			const session_id = qp.get('session') || sessionStorage.getItem('drake_session');
+			const fetches = [
+				fetch(`/i18n/${lang}.json`).then(r => r.json()).catch(() => ({})),
+				fetch('/questions.json').then(r => r.json()).catch(() => []),
+				session_id
+					? fetch(`/api/results/${session_id}/computed`).then(r => r.ok ? r.json() : null).catch(() => null)
+					: Promise.resolve(null),
+				fetch('/api/aggregate/computed').then(r => r.ok ? r.json() : null).catch(() => null),
+			];
+			let S = {}, questions = [], individualN = null, communityData = null;
+			[S, questions, individualN, communityData] = await Promise.all(fetches);
+			window._S = S;
+
+			/* touch device with native file sharing -> "Share"; otherwise -> "Download" */
+			const nativeShare = canShareFilesNow();
+			if (!nativeShare) {
+				document.getElementById('share-icon').textContent = '↓';
+				document.getElementById('share-label').dataset.i18n = 'results_download';
+			}
+
+			/* i18n */
+			document.querySelectorAll('[data-i18n]').forEach(el => {
+				const k = el.dataset.i18n; if (S[k] !== undefined) el.textContent = S[k];
+			});
+			document.body.classList.add('ready');
+
+			/* ── individual N ── */
+			const yourDist = individualN?.N_distribution;
+			const Z90 = 1.2816, SIG_MIN = 0.02;
+			const REF_MW = 0, REF_UNIV = Math.log10(5e-13);
+
+			if (yourDist && !yourDist.error) {
+				document.getElementById('stat-median').textContent = fmtV(yourDist.N_median);
+				document.getElementById('stat-iqr').textContent =
+					`[${fmtV(yourDist.N_q25)}, ${fmtV(yourDist.N_q75)}]`;
+				document.getElementById('stat-90').textContent =
+					`[${fmtV(yourDist.N_q05)}, ${fmtV(yourDist.N_q95)}]`;
+
+				const pNotAloneMW = probAbove(yourDist, REF_MW);
+				const pAloneMW = probBelow(yourDist, REF_MW);
+				const pAloneUniv = probBelow(yourDist, REF_UNIV);
+
+				document.getElementById('prob-not-alone-mw').textContent = fmtPct(pNotAloneMW);
+				document.getElementById('prob-alone-mw').textContent = fmtPct(pAloneMW);
+				document.getElementById('prob-alone-univ').textContent = fmtPct(pAloneUniv);
+			} else {
+				const reason = yourDist?.error || (S.results_n_na_reason || 'Uma ou mais perguntas foram puladas');
+				document.getElementById('stat-median').textContent = S.results_n_na || 'N/A';
+				document.getElementById('stat-iqr').textContent = reason;
+			}
+
+			/* ── community ── */
+			const MIN_SESSIONS = 3;
+			let commDist = null;
+			if (communityData?.community_N && !communityData.community_N.error
+				&& communityData.n_sessions >= MIN_SESSIONS) {
+				commDist = communityData.community_N;
+				document.getElementById('comm-legend-item').style.display = '';
+				document.getElementById('comm-note-card').style.display = 'none';
+			}
+
+			/* ── chart ── */
+			if ((yourDist && !yourDist.error) || commDist) {
+				drawChart(yourDist && !yourDist.error ? yourDist : null, commDist);
+				window.addEventListener('resize', () =>
+					drawChart(yourDist && !yourDist.error ? yourDist : null, commDist)
+				);
+			}
+
+			/* ── param table ── */
+			const tbody = document.getElementById('param-tbody');
+			const skippedLabel = S.results_skipped || 'pulado';
+			const serverAnswers = {};
+			if (individualN?.answers) individualN.answers.forEach(a => { serverAnswers[a.question_id] = a; });
+			function getAnswer(qid) {
+				if (serverAnswers[qid]) { const a = serverAnswers[qid]; return { tLo: a.t_lo, tMode: a.t_mode, tHi: a.t_hi, skipped: a.skipped, axisMode: a.axis_mode }; }
+				const raw = localStorage.getItem(`drake-answer-${qid}`);
+				return raw ? JSON.parse(raw) : null;
+			}
+			questions.forEach(Q => {
+				const row = document.createElement('tr');
+				const d = getAnswer(Q.id);
+				const paramName = S[Q.paramKey] || Q.id;
+				if (!d || d.skipped) {
+					row.innerHTML = `<td class="param-sym">${Q.symbolHTML}</td>` +
+						`<td>${paramName}</td>` +
+						`<td><span class="skipped-tag">${skippedLabel}</span></td>`;
+				} else {
+					const isLog = Q.axisMode !== 'lin';
+					const modeVal = isLog ? Math.pow(10, d.tMode) : d.tMode;
+
+					// 1. Calculate raw percentile positions
+					let rawQ25T = d.tMode - 0.6745 * Math.max(SIG_MIN, (d.tMode - d.tLo) / Z90);
+					let rawQ75T = d.tMode + 0.6745 * Math.max(SIG_MIN, (d.tHi - d.tMode) / Z90);
+
+					// 2. Clamp the percentile positions to the question's explicit limits [Q.tMin, Q.tMax]
+					const q25T = Math.max(Q.tMin, Math.min(Q.tMax, rawQ25T));
+					const q75T = Math.max(Q.tMin, Math.min(Q.tMax, rawQ75T));
+
+					// 3. Convert back to linear/log scale for the table display
+					const q25Val = isLog ? Math.pow(10, q25T) : q25T;
+					const q75Val = isLog ? Math.pow(10, q75T) : q75T;
+
+					row.innerHTML = `<td class="param-sym">${Q.symbolHTML}</td>` +
+						`<td>${paramName}</td>` +
+						`<td>${fmtV(modeVal)} · [${fmtV(q25Val)}, ${fmtV(q75Val)}]</td>`;
+				}
+				tbody.appendChild(row);
+			});
+
+			/* image export: only makes sense when there is a N distribution of your own */
+			if (yourDist && !yourDist.error) setupExport(yourDist, commDist, nativeShare);
+			else document.getElementById('share-btn').style.display = 'none';
+		})();
+	</script>
+</body>
+
+</html>

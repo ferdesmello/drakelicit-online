@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Drake Survey</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0
+		}
+
+		body {
+			font-family: system-ui, -apple-system, sans-serif;
+			background: #f5f4f0;
+			color: #1a1a18;
+			min-height: 100vh;
+			display: flex;
+			justify-content: center;
+			padding: 2rem 1.25rem;
+			opacity: 0;
+			transition: opacity 0.15s ease;
+		}
+		body.ready { opacity: 1; }
+
+		#wrap {
+			width: 100%;
+			max-width: 600px
+		}
+
+		/* progress */
+		.progress-area {
+			margin-bottom: 2rem
+		}
+
+		.progress-top {
+			display: flex;
+			justify-content: space-between;
+			align-items: baseline;
+			margin-bottom: 6px
+		}
+
+		.progress-label {
+			font-size: 13px;
+			color: #888780;
+			letter-spacing: .04em
+		}
+
+		.progress-count {
+			font-size: 13px;
+			color: #888780
+		}
+
+		.progress-bar {
+			height: 3px;
+			background: #d3d1c7;
+			border-radius: 2px;
+			overflow: hidden
+		}
+
+		.progress-fill {
+			height: 100%;
+			width: 30%;
+			background: #5f5e5a;
+			border-radius: 2px
+		}
+
+		/* param chip + question */
+		.question-card {
+			display: flex;
+			align-items: baseline;
+			gap: .65rem;
+			background: #fff;
+			border: 0.5px solid #d3d1c7;
+			border-radius: 12px;
+			padding: .9rem 1.1rem;
+			margin-bottom: .9rem;
+		}
+		.q-symbol {
+			font-family: monospace;
+			font-size: 18px;
+			color: #5f5e5a;
+			flex-shrink: 0;
+		}
+		.q-dot { color: #b4b2a9; flex-shrink: 0; }
+		.question-title {
+			font-size: 20px;
+			font-weight: 500;
+			line-height: 1.3;
+		}
+
+		/* slider card */
+		.slider-card {
+			background: #fff;
+			border: 0.5px solid #d3d1c7;
+			border-radius: 12px;
+			padding: 1.1rem 1.1rem .9rem;
+			margin-bottom: .9rem;
+			transition: opacity .2s;
+		}
+
+		.slider-card.dimmed {
+			opacity: .32;
+			pointer-events: none
+		}
+
+		.slider-hint {
+			font-size: 15px;
+			color: #888780;
+			margin-bottom: .9rem
+		}
+
+		#canvas-wrap {
+			position: relative;
+			width: 100%;
+			height: 203px
+		}
+
+		#cv {
+			width: 100%;
+			height: 203px;
+			display: block
+		}
+
+		#track-area {
+			position: relative;
+			height: 50px;
+			touch-action: none;
+			user-select: none
+		}
+
+		#track-line {
+			position: absolute;
+			top: 50%;
+			left: 6px;
+			right: 6px;
+			height: 3px;
+			background: #b4b2a9;
+			transform: translateY(-50%);
+			border-radius: 2px;
+		}
+
+		#track-fill {
+			position: absolute;
+			top: 0;
+			height: 100%;
+			background: #5f5e5a;
+			opacity: .25;
+			border-radius: 2px
+		}
+
+		.hdl {
+			position: absolute;
+			top: 50%;
+			transform: translate(-50%, -50%);
+			width: 24px;
+			height: 24px;
+			border-radius: 50%;
+			background: #fff;
+			border: 2px solid #5f5e5a;
+			cursor: grab;
+			touch-action: none;
+			z-index: 3;
+			transition: border-color .12s, box-shadow .12s;
+		}
+
+		.hdl:hover,
+		.hdl.drag {
+			border-color: #378add;
+			box-shadow: 0 0 0 6px rgba(55, 138, 221, .13)
+		}
+
+		#h-mode {
+			width: 22px;
+			height: 22px;
+			border-radius: 4px;
+			background: #1a1a18;
+			border: none;
+			cursor: grab;
+			z-index: 4;
+		}
+
+		#h-mode:hover,
+		#h-mode.drag {
+			background: #378add;
+			box-shadow: 0 0 0 6px rgba(55, 138, 221, .13)
+		}
+
+		/* inputs */
+		.inputs-row {
+			display: grid;
+			grid-template-columns: 1fr 1fr 1fr;
+			gap: 8px;
+			margin-bottom: .65rem
+		}
+
+		.inp-box {
+			background: #f1efe8;
+			border-radius: 6px;
+			padding: 6px 9px
+		}
+
+		.inp-box label {
+			display: block;
+			font-size: 12px;
+			color: #888780;
+			text-transform: uppercase;
+			letter-spacing: .05em;
+			margin-bottom: 2px
+		}
+
+		.inp-box input {
+			width: 100%;
+			font-size: 16px;
+			font-family: monospace;
+			background: transparent;
+			border: none;
+			color: #1a1a18;
+			outline: none;
+			padding: 0;
+		}
+
+		.inp-box input:focus {
+			color: #185fa5
+		}
+
+		/* boundary display: replaces the input when a wing is pinned */
+		.inp-box .boundary-text {
+			display: none;
+			font-size: 14px;
+			font-family: monospace;
+			color: #888780;
+			font-style: italic;
+		}
+
+		.derived-row {
+			display: flex;
+			gap: 1rem;
+			font-size: 13px;
+			color: #888780;
+			flex-wrap: wrap;
+			padding-top: 1px
+		}
+
+		.derived-row span b {
+			font-weight: 500;
+			color: #5f5e5a
+		}
+
+		/* skip */
+		.skip-area {
+			margin-bottom: 1.6rem
+		}
+
+		.skip-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 7px;
+			font-size: 13px;
+			color: #888780;
+			background: transparent;
+			border: 0.5px solid #b4b2a9;
+			border-radius: 6px;
+			padding: 5px 12px;
+			cursor: pointer;
+			font-family: inherit;
+			transition: background .12s, border-color .12s, color .12s;
+		}
+
+		.skip-btn:hover {
+			background: #f1efe8;
+			border-color: #888780;
+			color: #5f5e5a
+		}
+
+		.skip-warning {
+			display: none;
+			margin-top: .8rem;
+			padding: 11px 13px;
+			border: 0.5px solid #ef9f27;
+			border-radius: 8px;
+			background: #faeeda;
+		}
+
+		.skip-warning.visible {
+			display: flex;
+			gap: 9px;
+			align-items: flex-start
+		}
+
+		.warn-icon {
+			font-size: 16px;
+			flex-shrink: 0;
+			margin-top: 1px;
+			color: #ba7517
+		}
+
+		.skip-warning-text {
+			font-size: 14px;
+			color: #633806;
+			line-height: 1.6
+		}
+
+		.skip-warning-text b {
+			font-weight: 500
+		}
+
+		.skip-confirm-row {
+			display: flex;
+			gap: 8px;
+			margin-top: 9px;
+			flex-wrap: wrap
+		}
+
+		.skip-confirm-btn {
+			padding: 5px 13px;
+			font-size: 12px;
+			font-family: inherit;
+			border-radius: 6px;
+			cursor: pointer;
+			transition: opacity .12s;
+		}
+
+		.skip-confirm-btn.confirm {
+			background: #faeeda;
+			border: 0.5px solid #ef9f27;
+			color: #633806
+		}
+
+		.skip-confirm-btn.confirm:hover {
+			opacity: .72
+		}
+
+		.skip-confirm-btn.cancel {
+			background: transparent;
+			border: 0.5px solid #b4b2a9;
+			color: #5f5e5a
+		}
+
+		.skip-confirm-btn.cancel:hover {
+			background: #f1efe8
+		}
+
+		.skipped-badge {
+			display: none;
+			align-items: center;
+			gap: 8px;
+			font-size: 14px;
+			color: #ba7517;
+			margin-top: .8rem;
+			flex-wrap: wrap;
+		}
+
+		.skipped-badge.visible {
+			display: flex
+		}
+
+		.undo-link {
+			font-size: 12px;
+			color: #185fa5;
+			background: none;
+			border: none;
+			cursor: pointer;
+			font-family: inherit;
+			padding: 0;
+			text-decoration: underline;
+			text-underline-offset: 2px;
+		}
+
+		/* warnings */
+		.warning-hidden {
+			opacity: 0;
+			pointer-events: none;
+			transition: opacity .18s;
+		}
+
+		.warning-visible {
+			opacity: 1;
+		}
+
+		/* nav */
+		.nav-row {
+			display: flex;
+			align-items: center;
+			justify-content: space-between
+		}
+
+		.nav-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 7px;
+			padding: 10px 20px;
+			font-size: 14px;
+			font-family: inherit;
+			border: 0.5px solid #b4b2a9;
+			border-radius: 8px;
+			background: transparent;
+			color: #1a1a18;
+			cursor: pointer;
+			transition: background .12s;
+		}
+
+		.nav-btn:hover {
+			background: #f1efe8
+		}
+
+		.nav-btn.primary {
+			background: #1a1a18;
+			color: #f5f4f0;
+			border-color: transparent
+		}
+
+		.nav-btn.primary:hover {
+			opacity: .84
+		}
+
+		.autosave {
+			font-size: 13px;
+			color: #888780
+		}
+
+		.nav-btn.primary.inactive {
+			opacity: .45;
+			filter: saturate(.7);
+		}
+
+		@media(max-width:460px) {
+			body {
+				padding: 1.25rem .9rem
+			}
+
+			.question-title {
+				font-size: 17px
+			}
+
+			.inputs-row {
+				gap: 5px
+			}
+
+			.inp-box {
+				padding: 5px 7px
+			}
+
+			.inp-box input {
+				font-size: 13px
+			}
+
+			.nav-btn {
+				padding: 9px 13px;
+				font-size: 13px
+			}
+		}
+
+		@media(prefers-color-scheme:dark) {
+			body {
+				background: #1a1a18;
+				color: #f1efe8
+			}
+
+			.progress-bar {
+				background: #333330
+			}
+
+			.progress-fill {
+				background: #b4b2a9
+			}
+
+			.progress-label,
+			.progress-count,
+			.axis-note {
+				color: #9c9a92
+			}
+
+			.question-card { background: #242422; border-color: #3a3a37 }
+			.q-symbol { color: #b4b2a9 }
+			.q-dot { color: #444441 }
+
+			.slider-card {
+				background: #242422;
+				border-color: #3a3a37
+			}
+
+			.slider-hint,
+			.derived-row {
+				color: #9c9a92
+			}
+
+			.derived-row span b {
+				color: #b4b2a9
+			}
+
+			.inp-box {
+				background: #333330
+			}
+
+			.inp-box label {
+				color: #9c9a92
+			}
+
+			.inp-box input {
+				color: #f1efe8
+			}
+
+			.inp-box input:focus {
+				color: #85b7eb
+			}
+
+			.inp-box .boundary-text {
+				color: #8a8880
+			}
+
+			.hdl {
+				background: #242422;
+				border-color: #b4b2a9
+			}
+
+			.hdl:hover,
+			.hdl.drag {
+				border-color: #85b7eb;
+				box-shadow: 0 0 0 6px rgba(133, 183, 235, .14)
+			}
+
+			#h-mode {
+				background: #d4d2c8
+			}
+
+			#h-mode:hover,
+			#h-mode.drag {
+				background: #85b7eb
+			}
+
+			#track-line {
+				background: #444441
+			}
+
+			#track-fill {
+				background: #b4b2a9
+			}
+
+			.skip-btn {
+				border-color: #444441;
+				color: #9c9a92
+			}
+
+			.skip-btn:hover {
+				background: #333330;
+				border-color: #9c9a92;
+				color: #b4b2a9
+			}
+
+			.skip-warning {
+				background: #2e1800;
+				border-color: #a06010
+			}
+
+			.skip-warning-text {
+				color: #e0a84a
+			}
+
+			.warn-icon {
+				color: #e0a84a
+			}
+
+			.skip-confirm-btn.confirm {
+				background: #2e1800;
+				border-color: #a06010;
+				color: #e0a84a
+			}
+
+			.skip-confirm-btn.cancel {
+				border-color: #444441;
+				color: #9c9a92
+			}
+
+			.skip-confirm-btn.cancel:hover {
+				background: #333330
+			}
+
+			.skipped-badge {
+				color: #e0a84a
+			}
+
+			.undo-link {
+				color: #85b7eb
+			}
+
+			.nav-btn {
+				border-color: #444441;
+				color: #f1efe8
+			}
+
+			.nav-btn:hover {
+				background: #333330
+			}
+
+			.nav-btn.primary {
+				background: #d4d2c8;
+				color: #1a1a18
+			}
+
+			.autosave {
+				color: #8a8880
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div id="wrap" role="main">
+
+		<div class="progress-area">
+			<div class="progress-top">
+				<span class="progress-label" data-i18n="progress_label">Equação de Drake · levantamento
+					astrobiológico</span>
+				<span class="progress-count">1 / 7</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill"></div>
+			</div>
+		</div>
+
+		<div class="question-card">
+			<span class="q-symbol" id="param-symbol"></span>
+			<span class="q-dot" aria-hidden="true">·</span>
+			<h1 class="question-title" id="question-title"></h1>
+		</div>
+
+		<div class="slider-card" id="slider-card">
+			<p class="slider-hint" data-i18n="slider_hint">O pico é o valor mais provável. As alças laterais definem sua
+				incerteza em cada lado.</p>
+			<div class="inputs-row">
+				<div class="inp-box">
+					<label data-i18n="pct10">Percentil 10</label>
+					<input id="inp-lo" type="text" inputmode="decimal" />
+					<span class="boundary-text" id="bnd-lo"></span>
+				</div>
+				<div class="inp-box">
+					<label data-i18n="mode_label">Moda (pico)</label>
+					<input id="inp-mode" type="text" inputmode="decimal" />
+				</div>
+				<div class="inp-box">
+					<label data-i18n="pct90">Percentil 90</label>
+					<input id="inp-hi" type="text" inputmode="decimal" />
+					<span class="boundary-text" id="bnd-hi"></span>
+				</div>
+			</div>
+			<div id="canvas-wrap"><canvas id="cv" role="img" aria-label="Distribuição de probabilidade"></canvas></div>
+			<div id="track-area">
+				<div id="track-line">
+					<div id="track-fill"></div>
+				</div>
+				<div class="hdl" id="h-lo"></div>
+				<div class="hdl" id="h-mode"></div>
+				<div class="hdl" id="h-hi"></div>
+			</div>
+			<div class="derived-row" id="derived"></div>
+		</div>
+
+		<div class="skip-area">
+			<button class="skip-btn" id="skip-btn" onclick="onSkipClick()" aria-expanded="false">
+				⊘&nbsp; <span data-i18n="skip_btn">Passar. Não tenho conhecimento suficiente para estimar este
+					parâmetro.</span>
+			</button>
+			<div class="skip-warning" id="skip-warning" role="alert" aria-live="polite">
+				<span class="warn-icon">⚠</span>
+				<div class="skip-warning-text">
+					<b data-i18n="skip_warning_title">Pular esta pergunta impede o cálculo do seu N.</b>
+					<span data-i18n="skip_warning_body"> Todos os parâmetros são necessários para calcular o número
+						estimado de civilizações detectáveis. Você pode continuar, mas sua distribuição pessoal de N não
+						será exibida ao final.</span>
+					<div class="skip-confirm-row">
+						<button class="skip-confirm-btn confirm" onclick="confirmSkip()" data-i18n="skip_confirm">Pular
+							mesmo assim</button>
+						<button class="skip-confirm-btn cancel" onclick="cancelSkip()"
+							data-i18n="skip_cancel">Voltar</button>
+					</div>
+				</div>
+			</div>
+			<div class="skipped-badge" id="skipped-badge">
+				<span>⚠</span>
+				<span data-i18n="skipped_badge">Esta pergunta está pulada — sua distribuição de N não será
+					calculada.</span>
+				<button class="undo-link" onclick="undoSkip()" data-i18n="undo">Desfazer</button>
+			</div>
+		</div>
+
+		<p id="interaction-warning" data-i18n="interaction_warning"
+			style="display:none;margin-top:.8rem;font-size:13px;color:#ba7517;">
+		</p>
+
+		<p id="submit-error" data-i18n="submit_error"
+			style="display:none;margin-top:.8rem;font-size:13px;color:#ba7517;"></p>
+
+		<div style="margin-bottom:.6rem">
+			<a id="back-to-intro" href="intro.html"
+			   style="font-size:12px;color:#888780;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+				← <span data-i18n="back_to_intro">Voltar ao início</span>
+			</a>
+		</div>
+		<div class="nav-row">
+			<button class="nav-btn" onclick="navigate(-1)">← <span data-i18n="prev">Anterior</span></button>
+			<span class="autosave" id="save-note" data-i18n="saved" style="opacity:0;transition:opacity .3s ease">● Rascunho salvo</span>
+			<button class="nav-btn primary" id="next-btn" onclick="navigate(1)"><span id="next-btn-label" data-i18n="next">Próxima</span> →</button>
+		</div>
+
+	</div>
+
+	<script>
+		/* ── i18n ── */
+		(async function () {
+			const supported = ['pt', 'en', 'es'];
+			const ul = new URLSearchParams(location.search).get('lang');
+			const bl = (navigator.language || 'pt').slice(0, 2);
+			const lang =
+				supported.includes(ul) ? ul :
+					supported.includes(bl) ? bl :
+						'pt';
+			document.documentElement.lang =
+				lang === 'pt' ? 'pt-BR' : lang;
+
+			const S = await fetch(`/i18n/${lang}.json`)
+				.then(r => r.json());
+			window._S = S;
+
+			document.querySelectorAll('[data-i18n]').forEach(el => {
+				const k = el.dataset.i18n;
+				if (S[k] !== undefined) el.textContent = S[k];
+			});
+
+			const questions = await fetch('/questions.json').then(r => r.json());
+
+			const qIndex = parseInt(new URLSearchParams(location.search).get('q')) || 0;
+			const Q = questions[qIndex] || questions[0];
+			window.Q = Q;
+			window._questions = questions;
+
+			document.getElementById('param-symbol').innerHTML = Q.symbolHTML;
+			document.getElementById('question-title').textContent = S[Q.questionKey];
+
+			document.querySelector('.progress-count').textContent =
+				`${qIndex + 1} / ${questions.length}`;
+			document.querySelector('.progress-fill').style.width =
+				`${((qIndex + 1) / questions.length) * 100}%`;
+
+			const backLink = document.getElementById('back-to-intro');
+			if (backLink) backLink.href = `intro.html?lang=${lang}`;
+
+			if (qIndex === questions.length - 1) {
+				const lbl = document.getElementById('next-btn-label');
+				if (lbl && S.finish) lbl.textContent = S.finish;
+			}
+
+			window.dispatchEvent(new Event('question-loaded'));
+			document.body.classList.add('ready');
+		})();
+
+		/* ── slider ── */
+		(function () {
+			/*
+			 * Truncated split-normal distribution in T-space
+			 * ───────────────────────────────────────────────
+			 * Q.axisMode = 'log' | 'lin'
+			 *
+			 * The distribution has hard boundaries [tMin, tMax]. No probability
+			 * mass exists outside those bounds. The PDF is renormalized over the
+			 * visible range using the normal CDF Φ (approximated by normCDF below).
+			 *
+			 * Handle boundary-pinning behaviour
+			 * ───────────────────────────────────
+			 * Wing handles (lo, hi) are passively pinned at the boundary when the
+			 * mode handle is close enough that the minimum gap would be violated.
+			 * They do NOT get pushed away — the mode slides over them.
+			 *
+			 * Concretely:
+			 *   tLo = clamp(tMode - minGap, tMin, tMax)
+			 *   tHi = clamp(tMode + minGap, tMin, tMax)
+			 *
+			 * When the mode is far from a boundary, tLo/tHi are determined by the
+			 * user's drag and can sit anywhere in [tMin, tMode-minGap] or
+			 * [tMode+minGap, tMax]. When the mode is close, the wing is pinned at
+			 * the boundary and the boundary-text label replaces the numeric input.
+			 */
+
+			let Q = null;
+
+			const Z90 = 1.2816, SIG_MIN = 0.02, MIN_PX_GAP = 32;
+			let tLo, tMode, tHi, skipped = false;
+			let hasInteracted = false;
+			let answerPreviouslySaved = false;
+
+			/* ── axis helpers ── */
+			function isLog()    { return !Q || Q.axisMode !== 'lin'; }
+			function tMin()     { return Q.tMin; }
+			function tMax()     { return Q.tMax; }
+			function tSpan()    { return Q.tMax - Q.tMin; }
+			function tCenter()  { return (Q.tMin + Q.tMax) / 2; }
+			function clampT(t)  { return Math.max(tMin(), Math.min(tMax(), t)); }
+			function fracOf(t)  { return (t - tMin()) / tSpan(); }
+			function fromT(t)   { return isLog() ? Math.pow(10, t) : t; }
+			function toT(v) {
+				/* Fixed: removed the Math.max(1e-15, v) clamp that prevented typing
+				   very small values. The v > 0 guard in the input handlers is
+				   sufficient; Math.log10 of a valid positive number is fine. */
+				if (isLog()) return Math.log10(v);
+				return Math.max(tMin(), Math.min(tMax(), v));
+			}
+
+			function trackWidth() {
+				const tl = document.getElementById('track-line');
+				return tl ? tl.offsetWidth : 400;
+			}
+			function minTGap() {
+				const pgT  = SIG_MIN * Z90;
+				const pgPx = MIN_PX_GAP / trackWidth() * tSpan();
+				return Math.max(pgT, pgPx);
+			}
+
+			/*
+			 * safeSet — set tLo, tMode, tHi with boundary-pinning logic.
+			 *
+			 * The mode is clamped to [tMin, tMax]. Wings are then placed at
+			 * their requested positions, but clamped so they never go outside
+			 * [tMin, tMax] AND never cross the mode (they stop at tMode ± minGap).
+			 *
+			 * Critically, the mode is NOT prevented from going close to the
+			 * boundary — it can reach tMin or tMax. The wing simply pins at the
+			 * boundary and the mode slides past it. This differs from the old
+			 * behaviour where the mode was blocked at tMin+minGap / tMax-minGap.
+			 */
+			function safeSet(nl, nm, nh) {
+				const mg = minTGap();
+				nm = clampT(nm);
+				// Wings clamp to [tMin, tMax] and cannot cross the mode.
+				// When the mode is within minGap of a boundary, the wing is
+				// pinned at that boundary (behind the mode handle visually).
+				tLo  = Math.max(tMin(), Math.min(nm - mg, nl));
+				tHi  = Math.min(tMax(), Math.max(nm + mg, nh));
+				tMode = nm;
+			}
+
+			function initState() {
+				const tc = tCenter();
+				safeSet(tc - Q.initSpread, tc, tc + Q.initSpread);
+			}
+
+			/* ── normal CDF approximation (Abramowitz & Stegun 26.2.17) ──────────
+			 *
+			 * Φ(x) = P(Z ≤ x) for Z ~ N(0,1).
+			 * Maximum absolute error < 7.5×10⁻⁸ — more than sufficient here.
+			 *
+			 * This is needed for the truncation-aware normalization constant A
+			 * and for the derived stats (median, IQR) computed via numerical
+			 * CDF integration of the truncated PDF grid.
+			 */
+			function normCDF(x) {
+				if (x > 8)  return 1;
+				if (x < -8) return 0;
+				const t = 1 / (1 + 0.2316419 * Math.abs(x));
+				const p = t * (0.319381530
+					+ t * (-0.356563782
+					+ t * (1.781477937
+					+ t * (-1.821255978
+					+ t * 1.330274429))));
+				const phi = Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+				const c = 1 - phi * p;
+				return x >= 0 ? c : 1 - c;
+			}
+
+			/* ── truncation-aware normalization constant ──────────────────────────
+			 *
+			 * For an untruncated split-normal:
+			 *   A = sqrt(2/π) / (σ_L + σ_R)
+			 *
+			 * With boundaries [tMin, tMax], the visible mass under each half is:
+			 *   mass_L = Φ(0) - Φ((tMin - tMode) / σ_L)
+			 *   mass_R = Φ((tMax - tMode) / σ_R) - Φ(0)
+			 *
+			 * The un-normalized integral of each half-Gaussian over its visible
+			 * range is σ · √(2π) · mass, so:
+			 *   A = 1 / (σ_L · √(2π) · mass_L + σ_R · √(2π) · mass_R)
+			 *
+			 * When tMode is far from both boundaries, mass_L → 0.5 and mass_R → 0.5,
+			 * recovering the standard formula. Near a boundary, A increases so the
+			 * visible portion still integrates to 1.
+			 */
+			function truncNormConst(tM, sL, sR) {
+				const massL = normCDF(0) - normCDF((tMin() - tM) / sL);
+				const massR = normCDF((tMax() - tM) / sR) - normCDF(0);
+				const integral = sL * Math.sqrt(2 * Math.PI) * massL
+				               + sR * Math.sqrt(2 * Math.PI) * massR;
+				return integral > 0 ? 1 / integral : 1;
+			}
+
+			/* ── truncated split-normal PDF in T-space ────────────────────────────
+			 *
+			 * Evaluates to zero outside [tMin, tMax]. Inside, uses the
+			 * truncation-aware normalization constant from truncNormConst().
+			 * Matches the Python split_normal_pdf() in compute.py exactly.
+			 */
+			function splitPDF(t, tM, tL, tH) {
+				if (t < tMin() || t > tMax()) return 0;
+				const sL = Math.max(SIG_MIN, (tM - tL) / Z90);
+				const sR = Math.max(SIG_MIN, (tH - tM) / Z90);
+				const A  = truncNormConst(tM, sL, sR);
+				const s  = t <= tM ? sL : sR;
+				const z  = (t - tM) / s;
+				const e  = Math.exp(-0.5 * z * z);
+				return isFinite(e) ? A * e : 0;
+			}
+
+			/* ── derived stats via numerical CDF of the truncated PDF grid ────────
+			 *
+			 * The closed-form median/IQR formulas for the split-normal assume
+			 * untruncated tails and break near boundaries. We instead build a
+			 * CDF from the same 500-point PDF grid used for drawing and invert
+			 * it numerically. This is always consistent with what the user sees.
+			 *
+			 * Returns { median, q25, q75 } all in T-space.
+			 */
+			function derivedStats() {
+				const N  = 500;
+				const dt = tSpan() / N;
+				const ts = [], ys = [];
+				for (let i = 0; i <= N; i++) {
+					const t = tMin() + i * dt;
+					ts.push(t);
+					ys.push(splitPDF(t, tMode, tLo, tHi));
+				}
+				// Build CDF via trapezoidal integration
+				const cdf = [0];
+				for (let i = 1; i <= N; i++) {
+					cdf.push(cdf[i-1] + 0.5 * (ys[i-1] + ys[i]) * dt);
+				}
+				const total = cdf[N] || 1;
+				// Invert CDF at target quantiles by linear interpolation
+				function quantile(p) {
+					const target = p * total;
+					for (let i = 1; i <= N; i++) {
+						if (cdf[i] >= target) {
+							const frac = (target - cdf[i-1]) / Math.max(cdf[i] - cdf[i-1], 1e-30);
+							return ts[i-1] + frac * dt;
+						}
+					}
+					return ts[N];
+				}
+				return { median: quantile(0.5), q25: quantile(0.25), q75: quantile(0.75) };
+			}
+
+			/* ── value formatting ── */
+			function fmtV(v) {
+				if (!isLog()) return Math.max(tMin(), Math.min(tMax(), v)).toFixed(3);
+				const a = Math.abs(v);
+				if (a >= 1e4 || (a > 0 && a < 0.01)) return v.toExponential(1).replace('e+', 'e');
+				if (a >= 100) return v.toFixed(0);
+				if (a >= 10)  return v.toFixed(1);
+				if (a >= 1)   return v.toFixed(2);
+				if (a >= 0.1) return v.toFixed(3);
+				return v.toFixed(4);
+			}
+
+			/* ── boundary label helpers ───────────────────────────────────────────
+			 *
+			 * When a wing handle is pinned at a boundary (tLo === tMin or
+			 * tHi === tMax), the numeric input is hidden and replaced with a
+			 * "< [boundary value]" or "> [boundary value]" text label to signal
+			 * that this side of the distribution extends to the axis edge.
+			 */
+			const EPS = 1e-9; // tolerance for boundary detection
+
+			function isPinnedLo()  { return Math.abs(tLo  - tMin()) < EPS; }
+			function isPinnedHi()  { return Math.abs(tHi  - tMax()) < EPS; }
+
+			function updateBoundaryDisplay() {
+				const inpLo  = document.getElementById('inp-lo');
+				const bndLo  = document.getElementById('bnd-lo');
+				const inpHi  = document.getElementById('inp-hi');
+				const bndHi  = document.getElementById('bnd-hi');
+
+				if (isPinnedLo()) {
+					inpLo.style.display  = 'none';
+					bndLo.style.display  = 'block';
+					bndLo.textContent    = '< ' + fmtV(fromT(tMin()));
+				} else {
+					inpLo.style.display  = '';
+					bndLo.style.display  = 'none';
+				}
+
+				if (isPinnedHi()) {
+					inpHi.style.display  = 'none';
+					bndHi.style.display  = 'block';
+					bndHi.textContent    = '> ' + fmtV(fromT(tMax()));
+				} else {
+					inpHi.style.display  = '';
+					bndHi.style.display  = 'none';
+				}
+			}
+
+			/* ── axis ticks ── */
+			function superscript(n) {
+				const map = {'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³',
+				             '4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+				return String(n).split('').map(c => map[c] || c).join('');
+			}
+			function formatLogTick(e) {
+				//if (e === -3) return '0.001';
+				if (e === -2) return '0.01';
+				if (e === -1) return '0.1';
+				if (e === 0)  return '1';
+				if (e === 1)  return '10';
+				if (e === 2)  return '100';
+				//if (e === 3)  return '1000';
+				return '10' + superscript(e);
+			}
+			function tickStep() {
+				const range = tMax() - tMin();
+				if (range <= 10) return 1;
+				if (range <= 20) return 2;
+				if (range <= 50) return 5;
+				return 10;
+			}
+			function axisTicks() {
+				if (isLog()) {
+					const ticks = [];
+					for (let e = Math.ceil(tMin()); e <= Math.floor(tMax()); e += tickStep()) {
+						ticks.push({ t: e, label: formatLogTick(e) });
+					}
+					return ticks;
+				} else {
+					const ticks = [];
+					const span  = tMax() - tMin();
+					const raw   = span / 5;
+					const mag   = Math.pow(10, Math.floor(Math.log10(raw)));
+					const step  = Math.ceil(raw / mag) * mag;
+					const start = Math.ceil(tMin() / step) * step;
+					for (let v = start; v <= tMax() + 1e-9; v = Math.round((v + step) * 1e10) / 1e10) {
+						ticks.push({ t: v, label: v.toFixed(2).replace(/\.?0+$/, '') });
+					}
+					return ticks;
+				}
+			}
+
+			/* ── draw ── */
+			function draw() {
+				const wrap   = document.getElementById('canvas-wrap');
+				const canvas = document.getElementById('cv');
+				const dpr    = window.devicePixelRatio || 1;
+				const cssW   = wrap.clientWidth, cssH = 203;   /* 185 + 18px row for the plain-language tips */
+				canvas.style.width  = cssW + 'px';
+				canvas.style.height = cssH + 'px';
+				canvas.width  = Math.round(cssW * dpr);
+				canvas.height = Math.round(cssH * dpr);
+
+				const ctx = canvas.getContext('2d');
+				const W = canvas.width, H = canvas.height;
+				ctx.clearRect(0, 0, W, H);
+
+				const PC = { top: 8, right: 20, bottom: 44, left: 20 };   /* 26 for tick labels + 18 for tips */
+				const P  = { top: PC.top*dpr, right: PC.right*dpr,
+				             bottom: PC.bottom*dpr, left: PC.left*dpr };
+				const pw = W - P.left - P.right, ph = H - P.top - P.bottom;
+
+				const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+				const cStr = dark ? 'rgba(200,160,100,.88)' : 'rgba(140,84,28,.82)';
+				const cFil = dark ? 'rgba(200,160,100,.20)' : 'rgba(180,120,50,.16)';
+				const cIQR = dark ? 'rgba(60,155,115,.33)'  : 'rgba(20,135,85,.23)';
+				const cAx  = dark ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.25)';
+				const cTxt = dark ? 'rgba(255,255,255,.42)' : 'rgba(0,0,0,.68)';
+				const cDsh = dark ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.22)';
+				const cTk  = dark ? 'rgba(255,255,255,.30)' : 'rgba(0,0,0,.50)';   /* tick marks */
+
+				/* Build PDF on the [tMin, tMax] grid — truncated and renormalized */
+				const N = 500;
+				const ts = [], ys = [];
+				let ymax = 0;
+				for (let i = 0; i <= N; i++) {
+					const t = tMin() + (i / N) * tSpan();
+					const y = splitPDF(t, tMode, tLo, tHi);
+					ts.push(t); ys.push(y);
+					if (isFinite(y) && y > ymax) ymax = y;
+				}
+				if (!isFinite(ymax) || ymax === 0) ymax = 1;
+				ymax *= 1.18;
+
+				function xpx(t) { return P.left + fracOf(t) * pw; }
+				function ypx(y) { return P.top + ph - (Math.min(y, ymax) / ymax) * ph; }
+
+				/* IQR region from numerical stats */
+				const stats = derivedStats();
+				const q2 = clampT(stats.q25), q7 = clampT(stats.q75);
+
+				/* full fill */
+				ctx.beginPath();
+				ctx.moveTo(xpx(ts[0]), ypx(0));
+				for (let i = 0; i <= N; i++) ctx.lineTo(xpx(ts[i]), ypx(ys[i]));
+				ctx.lineTo(xpx(ts[N]), ypx(0));
+				ctx.closePath();
+				ctx.fillStyle = cFil; ctx.fill();
+
+				/* IQR fill */
+				let inQ = false; ctx.beginPath();
+				for (let i = 0; i <= N; i++) {
+					const t = ts[i], y = ys[i];
+					if (t >= q2 && t <= q7) {
+						if (!inQ) { ctx.moveTo(xpx(t), ypx(0)); inQ = true; }
+						ctx.lineTo(xpx(t), ypx(y));
+					} else if (inQ) {
+						ctx.lineTo(xpx(t), ypx(0)); ctx.closePath();
+						ctx.fillStyle = cIQR; ctx.fill();
+						ctx.beginPath(); inQ = false;
+					}
+				}
+				if (inQ) {
+					ctx.lineTo(xpx(ts[N]), ypx(0)); ctx.closePath();
+					ctx.fillStyle = cIQR; ctx.fill();
+				}
+
+				/* outline */
+				ctx.beginPath();
+				ctx.moveTo(xpx(ts[0]), ypx(ys[0]));
+				for (let i = 1; i <= N; i++) ctx.lineTo(xpx(ts[i]), ypx(ys[i]));
+				ctx.strokeStyle = cStr; ctx.lineWidth = 1.8 * dpr; ctx.stroke();
+
+				/* dashed verticals — only draw wing lines when not pinned at boundary */
+				const showLo   = !isPinnedLo();
+				const showHi   = !isPinnedHi();
+				const drawVert = [
+					showLo  ? tLo   : null,
+					          tMode,
+					showHi  ? tHi   : null,
+				];
+				drawVert.forEach(t => {
+					if (t === null) return;
+					const px = xpx(t);
+					if (px < P.left || px > W - P.right) return;
+					const y = splitPDF(t, tMode, tLo, tHi);
+					ctx.beginPath(); ctx.moveTo(px, ypx(y)); ctx.lineTo(px, ypx(0));
+					ctx.strokeStyle = cDsh; ctx.lineWidth = dpr;
+					ctx.setLineDash([3*dpr, 3*dpr]); ctx.stroke(); ctx.setLineDash([]);
+				});
+
+				/* axis line */
+				ctx.beginPath();
+				ctx.moveTo(P.left, P.top + ph); ctx.lineTo(P.left + pw, P.top + ph);
+				ctx.strokeStyle = cAx; ctx.lineWidth = dpr; ctx.stroke();
+
+				/* tick labels */
+				const ticks = axisTicks();
+				const fPx   = Math.max(11, Math.round(16 * dpr));
+				ctx.fillStyle = cTxt;
+				ctx.font      = `${fPx}px system-ui,-apple-system,sans-serif`;
+				ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+				const tickY         = P.top + ph + 4 * dpr;
+				const minTickSpacePx = 36 * dpr;
+				let lastPx = -Infinity;
+				const drawn = new Set();
+				ticks.forEach(({ t, label }) => {
+					const px = xpx(t);
+					if (px < P.left - 1 || px > W - P.right + 1) return;
+					if (px - lastPx < minTickSpacePx) return;
+					lastPx = px; drawn.add(t);
+					ctx.fillText(label, px, tickY);
+					ctx.beginPath(); ctx.moveTo(px, P.top + ph); ctx.lineTo(px, P.top + ph + 4*dpr);
+					ctx.strokeStyle = cTk; ctx.lineWidth = dpr; ctx.stroke();
+				});
+
+				/* whole decades that got no label (labels are thinned out on wide axes,
+				 * or skipped when they would collide): a medium tick without text */
+				if (isLog()) {
+					for (let e = Math.ceil(tMin()); e <= Math.floor(tMax()); e++) {
+						if (drawn.has(e)) continue;
+						const px = xpx(e);
+						if (px < P.left - 1 || px > W - P.right + 1) continue;
+						ctx.beginPath(); ctx.moveTo(px, P.top + ph); ctx.lineTo(px, P.top + ph + 3.5 * dpr);
+						ctx.strokeStyle = cTk; ctx.lineWidth = dpr; ctx.stroke();
+					}
+				}
+
+				/* minor ticks (log axes only, no labels).
+				 * Number of decades on the axis decides how many:
+				 *   2–3 decades -> all 9 subdivisions (2…9 × 10^e)
+				 *   4–6 decades -> a single mark at 5 × 10^e
+				 *   7+ decades  -> none
+				 * They sit at log10(k) above each decade, so they are NOT evenly spaced. */
+				if (isLog()) {
+					const span = tSpan();
+					let mult = [];
+					if (span <= 3 + 1e-9)      mult = [2, 3, 4, 5, 6, 7, 8, 9];
+					else if (span <= 6 + 1e-9) mult = [5];
+					/* safety on very narrow screens: if 8 and 9 would be < 4 px apart, keep only the 5 */
+					if (mult.length > 1 && 0.0512 * (pw / span) < 4 * dpr) mult = [5];
+					for (let e = Math.floor(tMin()); e < Math.ceil(tMax()); e++) {
+						mult.forEach(k => {
+							const t = e + Math.log10(k);
+							if (t <= tMin() + 1e-9 || t >= tMax() - 1e-9) return;
+							const px  = xpx(t);
+							const len = (k === 5 ? 3 : 2) * dpr;   /* the 5 is a little longer */
+							ctx.beginPath(); ctx.moveTo(px, P.top + ph); ctx.lineTo(px, P.top + ph + len);
+							ctx.strokeStyle = cTk; ctx.lineWidth = dpr; ctx.stroke();
+						});
+					}
+				}
+
+				/* plain-language tips under the two extremes of the axis.
+				 * Texts come from the language files (Q.tipLoKey / Q.tipHiKey), so
+				 * they must be edited together with tMin / tMax in questions.json.
+				 * The left tip starts at the left end of the axis, the right tip
+				 * ends at the right end; the font shrinks if they would collide. */
+				const Sx    = window._S || {};
+				const tipLo = Q.tipLoKey ? Sx[Q.tipLoKey] : '';
+				const tipHi = Q.tipHiKey ? Sx[Q.tipHiKey] : '';
+				if (tipLo || tipHi) {
+					const tipY    = P.top + ph + 22 * dpr;
+					let size      = Math.round(11 * dpr);
+					const minSize = Math.round(9 * dpr);
+					const fontOf  = s => `italic ${s}px system-ui,-apple-system,sans-serif`;
+					const fits    = s => {
+						ctx.font = fontOf(s);
+						const wL = tipLo ? ctx.measureText(tipLo).width : 0;
+						const wH = tipHi ? ctx.measureText(tipHi).width : 0;
+						return wL + wH + 12 * dpr <= pw;
+					};
+					while (size > minSize && !fits(size)) size--;
+					ctx.font = fontOf(size);
+					ctx.fillStyle = cTxt;
+					ctx.textBaseline = 'top';
+					if (tipLo) { ctx.textAlign = 'left';  ctx.fillText(tipLo, P.left, tipY); }
+					if (tipHi) { ctx.textAlign = 'right'; ctx.fillText(tipHi, P.left + pw, tipY); }
+				}
+			}
+
+			/* ── UI update ── */
+			function updateUI() {
+				function hpct(t) { return (fracOf(clampT(t)) * 100).toFixed(3) + '%'; }
+				document.getElementById('h-lo').style.left   = hpct(tLo);
+				document.getElementById('h-mode').style.left = hpct(tMode);
+				document.getElementById('h-hi').style.left   = hpct(tHi);
+
+				const lp   = fracOf(clampT(tLo))  * 100;
+				const hp   = fracOf(clampT(tHi))  * 100;
+				const fill = document.getElementById('track-fill');
+				fill.style.left  = lp + '%';
+				fill.style.width = (hp - lp) + '%';
+
+				/* Numeric inputs — only shown when wing is not boundary-pinned */
+				document.getElementById('inp-lo').value   = fmtV(fromT(tLo));
+				document.getElementById('inp-mode').value = fmtV(fromT(tMode));
+				document.getElementById('inp-hi').value   = fmtV(fromT(tHi));
+				updateBoundaryDisplay();
+
+				/* Derived stats from truncated CDF */
+				const stats = derivedStats();
+				const S     = window._S || {};
+				const sL = Math.max(SIG_MIN, (tMode - tLo) / Z90).toFixed(3);
+				const sR = Math.max(SIG_MIN, (tHi  - tMode) / Z90).toFixed(3);
+				document.getElementById('derived').innerHTML =
+					`<span>${S.median || 'Mediana'}: <b>${fmtV(fromT(clampT(stats.median)))}</b></span>` +
+					`<span>IQR: [<b>${fmtV(fromT(clampT(stats.q25)))}</b>, <b>${fmtV(fromT(clampT(stats.q75)))}</b>]</span>` +
+					`<span>σ<sub>L</sub>: <b>${sL}</b></span>` +
+					`<span>σ<sub>R</sub>: <b>${sR}</b></span>`;
+			}
+
+			function refresh() { updateUI(); draw(); updateNextButtonState(); }
+
+			/* ── draft save / load ── */
+			function saveDraft() {
+				const key  = `drake-answer-${Q.id}`;
+				const data = { tLo, tMode, tHi, skipped, axisMode: Q.axisMode,
+				               answered: hasInteracted || skipped || answerPreviouslySaved };
+				localStorage.setItem(key, JSON.stringify(data));
+				flashSaved();
+			}
+
+			function flashSaved() {
+				const note = document.getElementById('save-note');
+				if (!note) return;
+				note.style.opacity = '1';
+				clearTimeout(note._fadeTimer);
+				note._fadeTimer = setTimeout(() => { note.style.opacity = '0'; }, 2000);
+			}
+
+			function loadDraft() {
+				const key = `drake-answer-${Q.id}`;
+				const raw = localStorage.getItem(key);
+				if (!raw) return;
+				try {
+					const data = JSON.parse(raw);
+					if (data.skipped) {
+						skipped = true; setSkippedUI(true);
+					} else if (data.answered && data.tLo !== undefined && data.tMode !== undefined && data.tHi !== undefined) {
+						tLo = data.tLo; tMode = data.tMode; tHi = data.tHi;
+						answerPreviouslySaved = true;
+					}
+				} catch (err) { console.error(err); }
+			}
+
+			function hideInteractionWarning() {
+				const warn = document.getElementById('interaction-warning');
+				if (warn) warn.style.display = 'none';
+			}
+
+			function updateNextButtonState() {
+				const nextBtn = document.querySelector('.nav-btn.primary');
+				if (!nextBtn) return;
+				const answered = hasInteracted || skipped || answerPreviouslySaved;
+				nextBtn.classList.toggle('inactive', !answered);
+			}
+
+			/* ── skip ── */
+			function setSkippedUI(s) {
+				skipped = s;
+				updateNextButtonState();
+				hideInteractionWarning();
+				document.getElementById('slider-card').classList.toggle('dimmed', s);
+				document.getElementById('skipped-badge').classList.toggle('visible', s);
+				document.getElementById('skip-warning').classList.remove('visible');
+				document.getElementById('skip-btn').style.display = s ? 'none' : '';
+				saveDraft();
+			}
+			window.onSkipClick = () => document.getElementById('skip-warning').classList.add('visible');
+			window.confirmSkip = () => setSkippedUI(true);
+			window.cancelSkip  = () => document.getElementById('skip-warning').classList.remove('visible');
+			window.undoSkip    = () => setSkippedUI(false);
+
+			/* ── drag ── */
+			let dragging = null, dsMode = 0, dsLo = 0, dsHi = 0;
+			function trackFrac(cx) {
+				const r = document.getElementById('track-line').getBoundingClientRect();
+				return Math.max(0, Math.min(1, (cx - r.left) / r.width));
+			}
+
+			['lo', 'mode', 'hi'].forEach(id => {
+				document.getElementById('h-' + id).addEventListener('pointerdown', e => {
+					e.preventDefault();
+					dragging = id;
+					dsMode = tMode; dsLo = tLo; dsHi = tHi;
+					document.getElementById('h-' + id).classList.add('drag');
+					document.addEventListener('pointermove', onMove);
+					document.addEventListener('pointerup', onUp);
+				});
+			});
+
+			function onMove(e) {
+				if (!dragging) return;
+				hasInteracted = true;
+				hideInteractionWarning();
+				const t = tMin() + trackFrac(e.clientX) * tSpan();
+
+				if (dragging === 'mode') {
+					/*
+					 * Mode drag: move mode to t, carry wings by the same delta.
+					 * safeSet will then pin wings at boundary if mode gets close.
+					 * dsLo/dsHi are the wing positions at drag-start, so the
+					 * relative spacing is preserved until a boundary clamps it.
+					 */
+					const d = t - dsMode;
+					safeSet(dsLo + d, t, dsHi + d);
+				} else if (dragging === 'lo') {
+					/* Left wing: free to move in [tMin, tMode - minGap] */
+					safeSet(t, tMode, tHi);
+				} else {
+					/* Right wing: free to move in [tMode + minGap, tMax] */
+					safeSet(tLo, tMode, t);
+				}
+				refresh();
+			}
+
+			function onUp() {
+				if (dragging) {
+					document.getElementById('h-' + dragging).classList.remove('drag');
+					dragging = null;
+					saveDraft();
+				}
+				document.removeEventListener('pointermove', onMove);
+				document.removeEventListener('pointerup', onUp);
+			}
+
+			/* ── text inputs ── */
+			function parseInp(s) {
+				const v = parseFloat(s.replace(',', '.'));
+				return isNaN(v) ? null : v;
+			}
+
+			document.getElementById('inp-lo').addEventListener('change', function () {
+				const v = parseInp(this.value);
+				if (v != null && (isLog() ? v > 0 : true)) {
+					hasInteracted = true; hideInteractionWarning();
+					safeSet(toT(v), tMode, tHi); refresh(); saveDraft();
+				}
+			});
+			document.getElementById('inp-mode').addEventListener('change', function () {
+				const v = parseInp(this.value);
+				if (v == null || (isLog() && v <= 0)) return;
+				const nt = clampT(toT(v));
+				const d  = nt - tMode;
+				hasInteracted = true; hideInteractionWarning();
+				safeSet(tLo + d, nt, tHi + d); refresh(); saveDraft();
+			});
+			document.getElementById('inp-hi').addEventListener('change', function () {
+				const v = parseInp(this.value);
+				if (v != null && (isLog() ? v > 0 : true)) {
+					hasInteracted = true; hideInteractionWarning();
+					safeSet(tLo, tMode, toT(v)); refresh(); saveDraft();
+				}
+			});
+
+			/* ── final submit ─────────────────────────────────────────────────────
+			 * Drafts live ONLY in this browser (localStorage). The server receives
+			 * the answers once, here, in a single request. The id is generated on
+			 * the client and kept until success, so a retry after a lost response
+			 * cannot create a duplicate entry.
+			 */
+			function newUUID() {
+				if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+				const b = crypto.getRandomValues(new Uint8Array(16));
+				b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+				const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+				return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+			}
+
+			async function submitAll(lang) {
+				const S   = window._S || {};
+				const btn = document.getElementById('next-btn');
+				const lbl = document.getElementById('next-btn-label');
+				const err = document.getElementById('submit-error');
+				err.style.display = 'none';
+
+				/* consent is required before anything is sent */
+				let consent = {};
+				try { consent = JSON.parse(sessionStorage.getItem('drake_consent')) || {}; } catch (e) {}
+				if (!consent.tcle_version) { location.href = `consent.html?lang=${lang}`; return; }
+
+				/* collect the 7 drafts; if one is missing, go back to it */
+				const answers = [];
+				for (let i = 0; i < window._questions.length; i++) {
+					const q = window._questions[i];
+					let d = null;
+					try { d = JSON.parse(localStorage.getItem(`drake-answer-${q.id}`)); } catch (e) {}
+					if (!d || !(d.answered || d.skipped)) {
+						const p = new URLSearchParams(location.search);
+						p.set('q', i);
+						location.search = p.toString();
+						return;
+					}
+					answers.push({
+						question_id: q.id, axis_mode: q.axisMode,
+						t_lo: d.tLo, t_mode: d.tMode
+						, t_hi: d.tHi, skipped: !!d.skipped
+					});
+				}
+
+				/* optional background/beliefs page (kept only in this browser until now) */
+				let context = null;
+				try { context = JSON.parse(localStorage.getItem('drake-context')); } catch (e) {}
+
+				let pending = sessionStorage.getItem('drake_pending_id');
+				if (!pending) { pending = newUUID(); sessionStorage.setItem('drake_pending_id', pending); }
+
+				btn.classList.add('inactive'); btn.style.pointerEvents = 'none';
+				if (lbl && S.submitting) lbl.textContent = S.submitting;
+				try {
+					const res = await fetch('/api/submit', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							session_id: pending,
+							lang: consent.lang || lang,
+							tcle_version: consent.tcle_version,
+							answers,
+							context
+						})
+					});
+					if (!res.ok) throw new Error('HTTP ' + res.status);
+					const { session_id } = await res.json();
+					sessionStorage.setItem('drake_session', session_id);
+					sessionStorage.removeItem('drake_pending_id');
+					window._questions.forEach(q => localStorage.removeItem(`drake-answer-${q.id}`));
+					localStorage.removeItem('drake-context');
+					location.href = `results.html?lang=${lang}&session=${session_id}`;
+				} catch (e) {
+					console.warn('submit failed:', e.message);
+					err.style.display = 'block';
+					btn.classList.remove('inactive'); btn.style.pointerEvents = '';
+					if (lbl && S.finish) lbl.textContent = S.finish;
+				}
+			}
+
+			/* ── navigation ── */
+			window.navigate = function (dir) {
+				const params   = new URLSearchParams(location.search);
+				const currentQ = parseInt(params.get('q')) || 0;
+				const nextQ    = currentQ + dir;
+				const lang     = params.get('lang') || 'pt';
+				const answered = hasInteracted || skipped || answerPreviouslySaved;
+
+				/* BACK: never requires an answer. Only save if there is one,
+				so that an untouched question does not leave a fake draft. */
+				if (dir < 0) {
+					if (answered) saveDraft();
+					if (nextQ < 0) {
+						location.href = `context.html?lang=${lang}`;
+						return;
+					}
+					params.set('q', nextQ);
+					location.search = params.toString();
+					return;
+				}
+
+				/* FORWARD: needs an answer */
+				if (!answered) {
+					const warn = document.getElementById('interaction-warning');
+					if (warn) warn.style.display = 'block';
+					return;
+				}
+				saveDraft();
+				if (nextQ >= window._questions.length) {
+					submitAll(lang);
+					return;
+				}
+				params.set('q', nextQ);
+				location.search = params.toString();
+			};
+
+			window.addEventListener('resize', refresh);
+			window.addEventListener('question-loaded', () => {
+				Q = window.Q;
+				initState();
+				loadDraft();
+				refresh();
+			});
+		})();
+	</script>
+</body>
+
+</html>
