@@ -2,7 +2,7 @@
  "schema": 1,
  "license": "CC-BY-4.0",
  "part_size": 1000,
- "n_rows": 0,
+ "n_rows": 1,
  "questions": [
   "Ns",
   "fp",
@@ -12,5 +12,12 @@
   "fc",
   "fL"
  ],
- "parts": []
+ "parts": [
+  {
+   "file": "part-0001.jsonl",
+   "csv": "part-0001.csv",
+   "n_rows": 1,
+   "frozen": false
+  }
+ ]
 }
