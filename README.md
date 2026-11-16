@@ -1,8 +1,10 @@
 # Drakelicit online
 
-An open, always-on version of [Drakelicit](https://github.com/ferdesmello/drakelicit): anyone can give a
+[Drakelicit-online](https://ferdesmello.github.io/drakelicit-online/) is an open, always-on version of [Drakelicit](https://github.com/ferdesmello/drakelicit): anyone can give a
 probability distribution for each parameter of the Drake equation, see the resulting distribution of $N$, and compare
 it with other participants. It runs on **GitHub Pages**: no server, no database, no hosting cost.
+
+Give your estimates [here](https://ferdesmello.github.io/drakelicit-online/).
 
 * Everything the participant sees is computed **in the browser** (`js/drake.js`).
 * At the end, the answers are sent once to a **Google Form** (`config.js`); they land in a Google Sheet.
