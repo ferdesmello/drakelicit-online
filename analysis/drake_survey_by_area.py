@@ -8,8 +8,7 @@ repository root:
     python analysis/drake_survey_by_area.py
     python analysis/drake_survey_by_area.py --include-others --save-person-table
 
-Inputs  (same as drake_survey_analysis.py): data/sessions.csv, data/answers.csv,
-        data/context.csv, questions.json
+Inputs  (same as drake_survey_analysis.py): data/part-*.csv, questions.json
 
 THIS IS AN EXPLORATORY ANALYSIS. With ~10-15 people per group only very large
 differences can be detected; report effect sizes with their intervals, and treat
@@ -639,7 +638,7 @@ def main():
     rng = np.random.default_rng(args.seed)
 
     print("Loading the data...")
-    sessions, answers, context = base.load_data(data_dir)
+    sessions, answers, context = base.load_data(data_dir, questions)
     sess_group = {}
     for r in context.itertuples():
         g = group_of(r.area_grande)

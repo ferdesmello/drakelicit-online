@@ -1,12 +1,10 @@
 """
-Drake survey: analysis and figures from the 3 CSVs exported by the backend
+Drake survey: analysis and figures from the CSV exported by the backend
 ==========================================================================
 
-Inputs (downloaded with the admin endpoints):
-    sessions.csv   <- /api/export/sessions.csv
-    answers.csv    <- /api/export/answers.csv
-    context.csv    <- /api/export/context.csv
-    questions.json <- the same file the website uses
+Inputs:
+    data/part-*.csv <- flattened submission exports
+    questions.json  <- the same file the website uses
 
 Method ("A": pooled marginals, then multiply)
 ---------------------------------------------
@@ -105,18 +103,45 @@ def as_bool(series: pd.Series) -> pd.Series:
     return series.astype(str).str.strip().str.lower().isin(["true", "t", "1"])
 
 
-def load_data(data_dir: Path):
-    sessions = pd.read_csv(data_dir / "sessions.csv")
-    answers = pd.read_csv(data_dir / "answers.csv")
-    context = pd.read_csv(data_dir / "context.csv")
+def load_data(data_dir: Path, questions: list[dict]):
+    parts = sorted(data_dir.glob("part-*.csv"))
+    if not parts:
+        raise FileNotFoundError(f"No part-*.csv files found in {data_dir}")
+    submissions = pd.concat((pd.read_csv(part) for part in parts), ignore_index=True)
+    if "id" not in submissions:
+        raise ValueError("Submission CSVs must contain an 'id' column")
 
-    sessions["completed"] = as_bool(sessions["completed"])
-    done = set(sessions.loc[sessions["completed"], "id"])
+    qids = [q["id"] for q in questions]
+    answer_rows = []
+    for qid in qids:
+        required = [f"{qid}_{suffix}" for suffix in ("t_lo", "t_mode", "t_hi", "skipped")]
+        missing = [column for column in required if column not in submissions]
+        if missing:
+            raise ValueError(f"Missing columns for question {qid}: {', '.join(missing)}")
+        rows = submissions[["id", *required]].rename(columns={
+            f"{qid}_t_lo": "t_lo",
+            f"{qid}_t_mode": "t_mode",
+            f"{qid}_t_hi": "t_hi",
+            f"{qid}_skipped": "skipped",
+        })
+        rows["session_id"] = rows.pop("id")
+        rows["question_id"] = qid
+        rows["skipped"] = as_bool(rows["skipped"])
+        for column in ("t_lo", "t_mode", "t_hi"):
+            rows[column] = pd.to_numeric(rows[column], errors="coerce")
+        answer_rows.append(rows[["session_id", "question_id", "t_lo", "t_mode", "t_hi", "skipped"]])
 
-    answers = answers[answers["session_id"].isin(done)].copy()
-    answers["skipped"] = as_bool(answers["skipped"])
-    context = context[context["session_id"].isin(done)].copy()
-    return sessions[sessions["completed"]], answers, context
+    sessions = submissions[["id"]].copy()
+    sessions["completed"] = True
+    context_columns = [
+        "area_grande", "area_especifica",
+        "belief_life_solar", "belief_life_galaxy", "belief_intel_galaxy",
+        "belief_life_universe", "belief_intel_universe",
+    ]
+    context = submissions[["id", *[c for c in context_columns if c in submissions]]].rename(
+        columns={"id": "session_id"}
+    )
+    return sessions, pd.concat(answer_rows, ignore_index=True), context
 
 
 # ── community PDFs (linear opinion pool) ──────────────────────────────────
@@ -580,7 +605,7 @@ def figure_cumulative_overlay(cum: dict, questions: list, out: Path, n_sessions:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--data-dir", default="data", help="folder with sessions.csv, answers.csv, context.csv")
+    ap.add_argument("--data-dir", default="data", help="folder with part-*.csv submission files")
     ap.add_argument("--questions", default="questions.json")
     ap.add_argument("--out-dir", default="figures")
     ap.add_argument("--n-mc", type=int, default=200_000, help="Monte Carlo samples for N")
@@ -594,7 +619,7 @@ def main():
     questions = json.loads(Path(args.questions).read_text(encoding="utf-8"))
 
     print("Loading the data...")
-    sessions, answers, context = load_data(data_dir)
+    sessions, answers, context = load_data(data_dir, questions)
     print(f"  completed sessions: {len(sessions)}")
     if len(sessions) < 10:
         print("  WARNING: very few sessions; treat the curves as anecdotal.")

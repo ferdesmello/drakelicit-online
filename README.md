@@ -1,7 +1,7 @@
 # Drakelicit online
 
 An open, always-on version of [Drakelicit](https://github.com/ferdesmello/drakelicit): anyone can give a
-probability distribution for each parameter of the Drake equation, see the resulting distribution of N, and compare
+probability distribution for each parameter of the Drake equation, see the resulting distribution of $N$, and compare
 it with other participants. It runs on **GitHub Pages**: no server, no database, no hosting cost.
 
 * Everything the participant sees is computed **in the browser** (`js/drake.js`).
@@ -31,6 +31,22 @@ pip install -r scripts/requirements.txt
 python scripts/make_fake_rows.py --n 2500 --out /tmp/fake.csv
 python scripts/update_data.py --csv /tmp/fake.csv --data-dir /tmp/data-test
 ```
+
+## Survey analysis figures
+
+The analysis in `analysis/drake_survey_analysis.py` produces the following main figures from the public
+submissions in `data/`:
+
+![Drake equation parameter distributions](figures/drake_survey_PDFs.png)
+
+**Parameter distributions and $N$.** The first panels show each Drake parameter as individual participant
+distributions (thin lines) together with the equal-weight pooled distribution (thick line). The final panels
+show the resulting community distribution and cumulative probability for the product ($N$).
+
+![Community distribution of N](figures/drake_survey_N.png)
+
+**Community distribution of N.** This larger view shows the estimated distribution of the number of detectable
+civilizations in the Milky Way, including reference lines for ($N$=1) and ($N=5\times10^{-13}$).
 
 ## Going live
 
