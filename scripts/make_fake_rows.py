@@ -13,7 +13,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-AREAS = ["Ciências Exatas e da Terra", "Ciências Biológicas", "Engenharias", "Outra / Multidisciplinar", None]
+AREAS_MAP = json.loads((ROOT / "areas.json").read_text(encoding="utf-8"))
 COUNTRIES = ["BR", "US", "PT", "ES", "AR", "DE", None]
 SCALE = ["very_unlikely", "unlikely", "unsure", "likely", "very_likely", None]
 FAM = ["none", "little", "moderate", "good", "expert", None]
@@ -30,12 +30,14 @@ def answer(q, rng, skip_p=0.03):
 
 
 def payload(questions, rng, today):
+    g = rng.choice(list(AREAS_MAP) + [None])
+    e = rng.choice(AREAS_MAP[g] + [None]) if g else None
     return {
         "v": 1, "id": str(uuid.UUID(int=rng.getrandbits(128), version=4)),
         "date": (today - timedelta(days=rng.randint(0, 20))).isoformat(),
         "lang": rng.choice(["pt", "en", "es"]), "consent": "online-1.0",
         "answers": [answer(q, rng) for q in questions],
-        "context": {"country": rng.choice(COUNTRIES), "area_grande": rng.choice(AREAS),
+        "context": {"country": rng.choice(COUNTRIES), "area_grande": g, "area_especifica": e,
                     "familiarity_astro": rng.choice(FAM), "familiarity_bio": rng.choice(FAM),
                     "returning_self": rng.choice(["yes", "no", None]), "returning_device": rng.random() < 0.1,
                     "beliefs": {k: rng.choice(SCALE) for k in

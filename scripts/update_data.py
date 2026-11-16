@@ -59,12 +59,10 @@ SUPPORTED_LANGS = {"pt", "en", "es"}
 PART_RE = re.compile(r"^part-(\d{4})\.jsonl$")
 COUNTRY_RE = re.compile(r"^[A-Z]{2}$")
 
-# canonical (Portuguese) values, as used by context.html
-AREAS = {
-    "Ciências Exatas e da Terra", "Ciências Biológicas", "Engenharias", "Ciências da Saúde",
-    "Ciências Agrárias", "Ciências Sociais Aplicadas", "Ciências Humanas",
-    "Linguística, Letras e Artes", "Outra / Multidisciplinar", "Sem formação superior",
-}
+# canonical (Portuguese) values, as used by context.html. areas.json is the single source:
+# broad field -> list of specific areas (CNPq "áreas do conhecimento")
+AREAS_MAP = json.loads((ROOT / "areas.json").read_text(encoding="utf-8"))
+AREAS = set(AREAS_MAP)
 FAMILIARITY = {"none", "little", "moderate", "good", "expert"}
 YES_NO = {"yes", "no"}
 BELIEF_KEYS = ["life_solar", "life_galaxy", "intel_galaxy", "life_universe", "intel_universe"]
@@ -151,9 +149,13 @@ def validate(raw: dict, questions: list[dict], today: date) -> dict:
     beliefs_in = c.get("beliefs") if isinstance(c.get("beliefs"), dict) else {}
     beliefs = {k: (beliefs_in.get(k) if beliefs_in.get(k) in BELIEF_VALUES else None) for k in BELIEF_KEYS}
     rd = c.get("returning_device")
+    area_g = pick("area_grande", AREAS)
+    esp = c.get("area_especifica")           # only accepted if it belongs to the chosen broad field
+    area_e = esp if area_g and isinstance(esp, str) and esp in AREAS_MAP[area_g] else None
     context = {
         "country": country,
-        "area_grande": pick("area_grande", AREAS),
+        "area_grande": area_g,
+        "area_especifica": area_e,
         "familiarity_astro": pick("familiarity_astro", FAMILIARITY),
         "familiarity_bio": pick("familiarity_bio", FAMILIARITY),
         "returning_self": pick("returning_self", YES_NO),
@@ -212,8 +214,8 @@ def dumps(obj) -> str:
 
 
 def csv_columns(questions: list[dict]) -> list[str]:
-    cols = ["id", "date", "lang", "consent", "country", "area_grande", "familiarity_astro",
-            "familiarity_bio", "returning_self", "returning_device"]
+    cols = ["id", "date", "lang", "consent", "country", "area_grande", "area_especifica",
+            "familiarity_astro", "familiarity_bio", "returning_self", "returning_device"]
     cols += [f"belief_{k}" for k in BELIEF_KEYS]
     for q in questions:
         cols += [f"{q['id']}_t_lo", f"{q['id']}_t_mode", f"{q['id']}_t_hi", f"{q['id']}_skipped"]
@@ -222,7 +224,7 @@ def csv_columns(questions: list[dict]) -> list[str]:
 
 def flat_csv_row(r: dict, questions: list[dict]) -> list:
     c = r["context"]
-    out = [r["id"], r["date"], r["lang"], r["consent"], c["country"], c["area_grande"],
+    out = [r["id"], r["date"], r["lang"], r["consent"], c["country"], c["area_grande"], c["area_especifica"],
            c["familiarity_astro"], c["familiarity_bio"], c["returning_self"], c["returning_device"]]
     out += [c["beliefs"].get(k) for k in BELIEF_KEYS]
     by_id = {a["question_id"]: a for a in r["answers"]}

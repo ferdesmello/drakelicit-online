@@ -102,6 +102,13 @@ h1{font-size:24px;font-weight:600;line-height:1.25;margin-bottom:.6rem}
       </select>
     </div>
 
+    <div class="field" id="field-especifica" style="display:none">
+      <label for="sel-especifica" data-i18n="context_area_especifica_label">Área do conhecimento (classificação CNPq)</label>
+      <select id="sel-especifica">
+        <option value="" data-i18n="context_area_placeholder">Selecione…</option>
+      </select>
+    </div>
+
     <div id="about-container"></div>
   </div>
 
@@ -121,22 +128,13 @@ h1{font-size:24px;font-weight:600;line-height:1.25;margin-bottom:.6rem}
 <script>
 /*
  * Everything here is optional and is published as open data (see consent.html).
- * Only the BROAD CNPq field is asked: the specific area was dropped on purpose,
- * because country + specific area + answers could single a person out.
- * Values stay in Portuguese (canonical); the labels shown come from i18n (cnpq_N).
+ * Field of study: CNPq broad field + CNPq "área do conhecimento", both from a closed list
+ * (areas.json), never free text, so no personal data can be typed in by accident.
+ * Values stay in Portuguese (canonical); the labels shown come from i18n (cnpq_G and cnpq_G_S).
  */
-const AREAS = [
-  "Ciências Exatas e da Terra",
-  "Ciências Biológicas",
-  "Engenharias",
-  "Ciências da Saúde",
-  "Ciências Agrárias",
-  "Ciências Sociais Aplicadas",
-  "Ciências Humanas",
-  "Linguística, Letras e Artes",
-  "Outra / Multidisciplinar",
-  "Sem formação superior"
-];
+/* broad field -> specific areas (CNPq "áreas do conhecimento"), loaded from areas.json
+   (the same file is used by scripts/update_data.py to validate the answers) */
+let AREAS_MAP = {};
 
 /* ISO 3166-1 alpha-2 (+ XK). Names are produced by the browser (Intl.DisplayNames) in the page language. */
 const COUNTRY_CODES = ("AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ " +
@@ -188,14 +186,32 @@ function emphasize(s) {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 }
 
+/* fills the second dropdown with the specific areas of the chosen broad field (hidden when it has none) */
+function fillSpecific(grande) {
+  const sel = document.getElementById('sel-especifica');
+  const box = document.getElementById('field-especifica');
+  const S = window._S || {};
+  while (sel.options.length > 1) sel.remove(1);
+  const list = AREAS_MAP[grande] || [];
+  const gi = Object.keys(AREAS_MAP).indexOf(grande);
+  list.forEach((a, si) => {
+    const o = document.createElement('option');
+    o.value = a; o.textContent = S[`cnpq_${gi}_${si}`] || a;
+    sel.appendChild(o);
+  });
+  sel.value = '';
+  box.style.display = list.length ? '' : 'none';
+}
+
 function buildSelects(S, lang) {
   const selG = document.getElementById('sel-grande');
-  AREAS.forEach((a, i) => {
+  Object.keys(AREAS_MAP).forEach((a, i) => {
     const o = document.createElement('option');
     o.value = a; o.textContent = S['cnpq_' + i] || a;
     selG.appendChild(o);
   });
-  selG.addEventListener('change', saveState);
+  selG.addEventListener('change', () => { fillSpecific(selG.value); saveState(); });
+  document.getElementById('sel-especifica').addEventListener('change', saveState);
 
   const selC = document.getElementById('sel-country');
   let names;
@@ -251,6 +267,7 @@ function collectState() {
   const state = {
     country: document.getElementById('sel-country').value || null,
     area_grande: document.getElementById('sel-grande').value || null,
+    area_especifica: document.getElementById('sel-especifica').value || null,
     beliefs: {}
   };
   document.querySelectorAll('.belief-q').forEach(row => {
@@ -288,7 +305,8 @@ function loadSaved() {
   try {
     const d = JSON.parse(raw);
     if (d.country) document.getElementById('sel-country').value = d.country;
-    if (d.area_grande) document.getElementById('sel-grande').value = d.area_grande;
+    if (d.area_grande) { document.getElementById('sel-grande').value = d.area_grande; fillSpecific(d.area_grande); }
+    if (d.area_especifica) document.getElementById('sel-especifica').value = d.area_especifica;
     ABOUT_QUESTIONS.forEach(q => { if (d[q.id]) pressButton(q.id, 'about', d[q.id]); });
     Object.keys(d.beliefs || {}).forEach(qid => { if (d.beliefs[qid]) pressButton(qid, 'belief', d.beliefs[qid]); });
   } catch (e) { console.error(e); }
@@ -309,6 +327,7 @@ function loadSaved() {
     S = await fetch(`i18n/${lang}.json`).then(r => r.json());
   } catch (e) { console.warn('i18n load failed, using defaults'); }
   window._S = S;
+  try { AREAS_MAP = await fetch('areas.json').then(r => r.json()); } catch (e) { console.warn('areas.json load failed'); }
 
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const k = el.dataset.i18n;

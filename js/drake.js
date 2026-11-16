@@ -186,6 +186,7 @@
     var c = o.context || {}, ctx = {
       country: c.country || null,
       area_grande: c.area_grande || null,
+      area_especifica: c.area_especifica || null,
       familiarity_astro: c.familiarity_astro || null,
       familiarity_bio: c.familiarity_bio || null,
       returning_self: c.returning_self || null,

@@ -8,9 +8,9 @@
  */
 window.DRAKE_CONFIG = {
   /* https://docs.google.com/forms/d/e/<FORM_ID>/formResponse   (note: formResponse, not viewform) */
-  FORM_URL: "",
+  FORM_URL: "https://docs.google.com/forms/d/e/1FAIpQLScYNyAgDP5oTvwoaSXDiGtvvTBOlj6Txe3vpRHiF_HGEDAAkA/formResponse",
   /* name of the single long-answer field of the form, e.g. "entry.1234567890" */
-  FORM_ENTRY: "",
+  FORM_ENTRY: "entry.1488252457",
 
   /* community curve, written by the GitHub Action (relative path: works on github.io/<repo>/) */
   COMMUNITY_URL: "data/community.json",

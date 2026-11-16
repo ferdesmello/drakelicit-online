@@ -13,7 +13,8 @@ it with other participants. It runs on **GitHub Pages**: no server, no database,
 index.html intro.html consent.html context.html survey.html results.html   the pages (relative paths only)
 config.js                      Form address, repo URL (empty Form address = dev mode: nothing is sent)
 js/drake.js                    shared browser code: Monte Carlo + KDE, payload, results link
-questions.json  i18n/*.json    the 7 parameters; pt / en / es texts
+questions.json  i18n/*.json    the 7 parameters; pt / en / es texts (also the translated CNPq areas)
+areas.json                     CNPq broad field -> specific areas (single source for the context page and the validator)
 assets/slider_demo.gif         demo shown on the intro page
 data/                          open data + community.json (written by the Action only; see data/README.md)
 scripts/update_data.py         Sheet CSV -> validate -> data/ ; community distribution (uses scripts/compute.py)
@@ -52,3 +53,8 @@ python scripts/update_data.py --csv /tmp/fake.csv --data-dir /tmp/data-test
 * GitHub disables scheduled workflows after 60 days without repository activity; every run commits
   `data/last_run.txt` as a keepalive. If the Actions tab shows the workflow disabled, re-enable it there.
 * The community curve only changes when the Action runs; the results page says so.
+
+## Licenses
+
+* **Code**: MIT (`LICENSE`).
+* **Data** in `data/`: CC BY 4.0 (see `data/README.md`).

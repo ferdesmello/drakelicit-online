@@ -37,6 +37,7 @@ No name, e-mail, IP address or time of day is stored here. The context fields ar
 | `consent` | version of the consent text accepted |
 | `country` | ISO 3166-1 alpha-2 code, or empty |
 | `area_grande` | CNPq broad field (Portuguese label), or empty. `Sem formação superior` = no higher education |
+| `area_especifica` | CNPq "área do conhecimento" (Portuguese label, one of the 76 in `areas.json`), or empty. Only present together with a matching `area_grande`. E.g. `Geociências` vs `Física` |
 | `familiarity_astro`, `familiarity_bio` | `none` `little` `moderate` `good` `expert` |
 | `returning_self` | `yes`/`no`: "have you taken this test before?" (self-report) |
 | `returning_device` | `True`/`False`: this browser had already sent an answer (automatic) |
