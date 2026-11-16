@@ -352,8 +352,10 @@ def main() -> int:
 
     # 3. append (full parts are never touched again)
     touched = append_rows(data_dir, new_rows, args.part_size) if new_rows else set()
-    for p in touched:
-        write_part_csv(p, questions)
+    for p in list_parts(data_dir):
+        # CSV of a part that received rows now, or whose CSV is missing (e.g. it was never committed)
+        if p in touched or not p.with_suffix(".csv").exists():
+            write_part_csv(p, questions)
 
     # 4. community + manifest from ALL parts
     parts = list_parts(data_dir)
