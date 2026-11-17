@@ -63,11 +63,11 @@ PARAM_LABELS = {
 }
 
 BELIEF_TITLES = {
-    "life_solar": "Life elsewhere in the\nSolar System (now or past)",
-    "life_galaxy": "Life now elsewhere in\nthe Milky Way",
-    "intel_galaxy": "Detectable intelligent life now\nelsewhere in the Milky Way",
-    "life_universe": "Life now elsewhere in the\nobservable universe",
-    "intel_universe": "Detectable intelligent life now\nelsewhere in the observable universe",
+    "belief_life_solar": "Life elsewhere in the\nSolar System (now or past)",
+    "belief_life_galaxy": "Life now elsewhere in\nthe Milky Way",
+    "belief_intel_galaxy": "Detectable intelligent life now\nelsewhere in the Milky Way",
+    "belief_life_universe": "Life now elsewhere in the\nobservable universe",
+    "belief_intel_universe": "Detectable intelligent life now\nelsewhere in the observable universe",
 }
 SCALE_ORDER = ["very_unlikely", "unlikely", "unsure", "likely", "very_likely"]
 SCALE_LABELS = ["Very\nunlikely", "Unlikely", "Unsure", "Likely", "Very\nlikely"]
@@ -596,7 +596,7 @@ def figure_cumulative_overlay(cum: dict, questions: list, out: Path, n_sessions:
     ax.axvline(5e-13, color="red", linestyle="dashed", linewidth=1.2)
     style_axis(ax, "Product of the first $k$ parameters", "Prob. density per decade",
                f"Adding one Drake parameter at a time (community, n = {n_sessions} participants)")
-    ax.legend(fontsize=8, frameon=False, loc="upper right", title="k : terms included", title_fontsize=8)
+    ax.legend(fontsize=8, frameon=False, loc="upper left", title="k : terms included", title_fontsize=8)
     plt.tight_layout()
     plt.savefig(out, bbox_inches="tight", dpi=150)
     plt.close(fig)
