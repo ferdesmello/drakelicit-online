@@ -48,6 +48,10 @@ h1{font-size:24px;font-weight:600;line-height:1.25;margin-bottom:.6rem}
 .scale-btn:hover{border-color:#888780}
 .scale-btn.selected{border-color:#1a1a18;background:#1a1a18;color:#f5f4f0}
 
+/* the beliefs are shown in two thin boxes: any life / intelligent detectable life */
+.belief-group{border:0.5px solid #d3d1c7;border-radius:10px;padding:.9rem 1rem 1.1rem;margin-bottom:1rem}
+.belief-group:last-child{margin-bottom:0}
+.belief-group h3{font-size:13px;font-weight:600;color:#5f5e5a;margin-bottom:.9rem}
 .nav-row{display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem}
 .nav-btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;font-size:15px;font-family:inherit;font-weight:500;background:#1a1a18;color:#f5f4f0;border:none;border-radius:8px;cursor:pointer;text-decoration:none;transition:opacity .15s}
 .nav-btn:hover{opacity:.85}
@@ -70,6 +74,8 @@ h1{font-size:24px;font-weight:600;line-height:1.25;margin-bottom:.6rem}
   .field label{color:#b4b2a9}
   .field select{background:#242422;border-color:#3a3a37;color:#f1efe8}
   .belief-q .q-text{color:#f1efe8}
+  .belief-group{border-color:#3a3a37}
+  .belief-group h3{color:#b4b2a9}
   .scale-btn{background:#242422;border-color:#3a3a37;color:#b4b2a9}
   .scale-btn:hover{border-color:#9c9a92}
   .scale-btn.selected{border-color:#d4d2c8;background:#d4d2c8;color:#1a1a18}
@@ -114,7 +120,14 @@ h1{font-size:24px;font-weight:600;line-height:1.25;margin-bottom:.6rem}
 
   <div class="section-card">
     <h2 data-i18n="context_beliefs_section_title">Suas crenças sobre vida no universo</h2>
-    <div id="beliefs-container"></div>
+    <div class="belief-group">
+      <h3 data-i18n="context_beliefs_group_life">Qualquer forma de vida extraterrestre</h3>
+      <div id="beliefs-life"></div>
+    </div>
+    <div class="belief-group">
+      <h3 data-i18n="context_beliefs_group_intel">Vida extraterrestre inteligente (detectável)</h3>
+      <div id="beliefs-intel"></div>
+    </div>
   </div>
 
   <div class="nav-row">
@@ -171,11 +184,15 @@ const ABOUT_QUESTIONS = [
   { id: "familiarity_bio",   key: "ctx_q_fam_bio",   scale: SCALE_FAMILIARITY },
   { id: "returning_self",    key: "ctx_q_returning", scale: SCALE_YESNO },
 ];
-const BELIEF_QUESTIONS = [
+/* two boxes; inside each one the order is Solar System -> Milky Way -> observable universe.
+   The ids are the stored keys (do not rename them: the Action, the data and the analysis use them). */
+const BELIEFS_LIFE = [
   { id: "life_solar",     key: "ctx_q_life_solar",     scale: SCALE_LIKELY },
   { id: "life_galaxy",    key: "ctx_q_life_galaxy",    scale: SCALE_LIKELY },
-  { id: "intel_galaxy",   key: "ctx_q_intel_galaxy",   scale: SCALE_LIKELY },
   { id: "life_universe",  key: "ctx_q_life_universe",  scale: SCALE_LIKELY },
+];
+const BELIEFS_INTEL = [
+  { id: "intel_galaxy",   key: "ctx_q_intel_galaxy",   scale: SCALE_LIKELY },
   { id: "intel_universe", key: "ctx_q_intel_universe", scale: SCALE_LIKELY },
 ];
 
@@ -336,7 +353,8 @@ function loadSaved() {
 
   buildSelects(S, lang);
   buildChoices('about-container', ABOUT_QUESTIONS, 'about', S);
-  buildChoices('beliefs-container', BELIEF_QUESTIONS, 'belief', S);
+  buildChoices('beliefs-life', BELIEFS_LIFE, 'belief', S);
+  buildChoices('beliefs-intel', BELIEFS_INTEL, 'belief', S);
   loadSaved();
 
   document.getElementById('next-link').addEventListener('click', () => { saveState(); });

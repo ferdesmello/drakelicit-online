@@ -235,5 +235,7 @@
 	"cnpq_6_9": "Teologia",
 	"cnpq_7_0": "Linguística",
 	"cnpq_7_1": "Letras",
-	"cnpq_7_2": "Artes"
+	"cnpq_7_2": "Artes",
+	"context_beliefs_group_life": "Qualquer forma de vida extraterrestre",
+	"context_beliefs_group_intel": "Vida extraterrestre inteligente (detectável)"
 }
