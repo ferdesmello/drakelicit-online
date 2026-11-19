@@ -8,10 +8,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write     # commit the data files
+  contents: write     # commit the data files and figures
   pages: write        # ask Pages for a rebuild after the commit (see last step)
 
-# never two runs at once (the workflow is the only writer of data/)
+# never two runs at once (the workflow is the only writer of data/ and figures/)
 concurrency:
   group: update-data
   cancel-in-progress: false
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +40,7 @@ jobs:
           SHEET_CSV_URL: ${{ secrets.SHEET_CSV_URL }}
         run: python scripts/update_data.py
 
-      # Generate the public analysis figures and summaries from the refreshed data.
+      # Public figures and summary tables from the refreshed data (data/part-*.csv).
       - name: Run survey analysis
         id: analysis
         if: steps.update.outcome == 'success'
@@ -51,11 +51,24 @@ jobs:
             --questions questions.json \
             --out-dir figures
 
+      # Exploratory comparison by field of study. It stops on purpose while either group
+      # (Biológicas, Exatas) has fewer than 5 people, so a failure here is NOT an error:
+      # it is not counted in the final "fail the run" step.
+      - name: Run analysis by area
+        id: by_area
+        if: steps.update.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python analysis/drake_survey_by_area.py \
+            --data-dir data \
+            --questions questions.json \
+            --out-dir figures
+
       # KEEPALIVE: GitHub disables scheduled workflows after 60 days without repository
       # activity. data/last_run.txt changes on every run, so every run is a commit.
       - name: Keepalive and commit
         run: |
-          echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) import=${{ steps.update.outcome }}" > data/last_run.txt
+          echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) import=${{ steps.update.outcome }} analysis=${{ steps.analysis.outcome }} by_area=${{ steps.by_area.outcome }}" > data/last_run.txt
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A data figures
@@ -71,7 +84,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh api -X POST "repos/${{ github.repository }}/pages/builds"
 
-      - name: Fail the run if the import or analysis failed
+      - name: Fail the run if the import or the main analysis failed
         if: steps.update.outcome == 'failure' || steps.analysis.outcome == 'failure'
         run: |
           if [ "${{ steps.update.outcome }}" = "failure" ]; then
