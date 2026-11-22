@@ -1,1 +1,1 @@
-2026-11-19T05:50:13Z import=success
+2026-11-22T02:11:50Z import=success analysis=success by_area=failure
